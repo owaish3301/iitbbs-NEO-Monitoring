@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
+import NotFoundPage from './pages/NotFoundPage'
 import { Toaster } from './components/ui/sonner'
 import { useAuth } from './context/AuthContext'
 
@@ -23,6 +24,7 @@ function App() {
             <Dashboard />
           </ProtectedRoute>
         } />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   )
