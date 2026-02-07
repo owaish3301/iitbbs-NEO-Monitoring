@@ -6,14 +6,12 @@ import {
     Check,
     Clock,
     AlertTriangle,
-    Settings,
     Trash2,
     Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 
 // Mock alerts data
 const mockAlerts = [
@@ -98,69 +96,77 @@ const AlertsPanel = () => {
     };
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md">
-            <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                        <Bell className="w-5 h-5 text-cyan-400" />
-                        Alerts & Notifications
+        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full">
+            <CardHeader className="pb-4 relative">
+                {/* Title + Action */}
+                <div className="flex items-start sm:items-center justify-between gap-2">
+                    {/* Title */}
+                    <CardTitle className="text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+                        <Bell className="w-5 h-5 text-cyan-400 shrink-0" />
+                        <span className="whitespace-nowrap">Alerts & Notifications</span>
                         {unreadCount > 0 && (
                             <Badge className="bg-red-500 text-white text-xs">
                                 {unreadCount} new
                             </Badge>
                         )}
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={markAllRead}
-                            className="text-gray-400 hover:text-white text-xs"
-                        >
-                            <Check className="w-3 h-3 mr-1" />
-                            Mark all read
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-gray-400 hover:text-white"
-                        >
-                            <Settings className="w-4 h-4" />
-                        </Button>
-                    </div>
+
+                    {/* Mark all read */}
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={markAllRead}
+                        className="
+        text-gray-400 hover:text-white text-xs
+        whitespace-nowrap
+        sm:self-center
+      "
+                    >
+                        <Check className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Mark all read</span>
+                        <span className="sm:hidden">Mark read</span>
+                    </Button>
                 </div>
 
                 {/* Filters */}
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex flex-wrap items-center gap-2 mt-4">
                     <Filter className="w-4 h-4 text-gray-500" />
-                    <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+                    <div className="flex flex-wrap gap-1 bg-white/5 rounded-lg p-1">
                         <Button
                             size="sm"
                             variant={filter === 'all' ? 'default' : 'ghost'}
                             onClick={() => setFilter('all')}
-                            className={`h-7 px-3 ${filter === 'all' ? 'bg-white/10' : 'text-gray-400'}`}
+                            className={`h-7 px-3 ${filter === 'all' ? 'bg-white/10' : 'text-gray-400'
+                                }`}
                         >
                             All
                         </Button>
+
                         <Button
                             size="sm"
                             variant={filter === 'unread' ? 'default' : 'ghost'}
                             onClick={() => setFilter('unread')}
-                            className={`h-7 px-3 ${filter === 'unread' ? 'bg-white/10' : 'text-gray-400'}`}
+                            className={`h-7 px-3 ${filter === 'unread' ? 'bg-white/10' : 'text-gray-400'
+                                }`}
                         >
                             Unread
                         </Button>
+
                         <Button
                             size="sm"
                             variant={filter === 'high' ? 'default' : 'ghost'}
                             onClick={() => setFilter('high')}
-                            className={`h-7 px-3 ${filter === 'high' ? 'bg-red-500/20 text-red-400' : 'text-gray-400'}`}
+                            className={`h-7 px-3 ${filter === 'high'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'text-gray-400'
+                                }`}
                         >
                             High Priority
                         </Button>
                     </div>
                 </div>
             </CardHeader>
+
 
             <CardContent>
                 {filteredAlerts.length === 0 ? (
@@ -180,8 +186,8 @@ const AlertsPanel = () => {
                                     exit={{ opacity: 0, x: -100 }}
                                     transition={{ delay: index * 0.05 }}
                                     className={`p-4 rounded-xl border transition-all ${alert.read
-                                            ? 'bg-white/5 border-white/5'
-                                            : 'bg-white/10 border-cyan-500/30'
+                                        ? 'bg-white/5 border-white/5'
+                                        : 'bg-white/10 border-cyan-500/30'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -231,24 +237,6 @@ const AlertsPanel = () => {
                         </AnimatePresence>
                     </div>
                 )}
-
-                <Separator className="bg-white/10 my-4" />
-
-                {/* Alert Settings */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div>
-                        <p className="text-white text-sm font-medium">Alert Preferences</p>
-                        <p className="text-gray-500 text-xs">Configure close approach thresholds</p>
-                    </div>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-white/10 text-gray-400 hover:text-white"
-                    >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Configure
-                    </Button>
-                </div>
             </CardContent>
         </Card>
     );

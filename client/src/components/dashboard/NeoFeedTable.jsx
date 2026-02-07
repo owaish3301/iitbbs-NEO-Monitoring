@@ -19,6 +19,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterHazardous, setFilterHazardous] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'distance', direction: 'asc' });
+    const [displayCount, setDisplayCount] = useState(8);
 
     const neos = neoData?.neo_objects || [];
 
@@ -88,7 +89,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
     };
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md">
+        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full">
             <CardHeader className="pb-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
@@ -96,15 +97,15 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                         NEO Live Feed
                     </CardTitle>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         {/* Search */}
-                        <div className="relative">
+                        <div className="relative flex-1 min-w-[140px] max-w-[250px]">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                             <Input
-                                placeholder="Search by name or ID..."
+                                placeholder="Search..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-48 lg:w-64 pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                                className="w-full pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                             />
                         </div>
 
@@ -183,7 +184,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                         </thead>
                         <tbody>
                             <AnimatePresence>
-                                {filteredAndSortedNeos.slice(0, 15).map((neo, index) => {
+                                {filteredAndSortedNeos.slice(0, displayCount).map((neo, index) => {
                                     const approach = neo.close_approach_data[0];
                                     const isHazardous = neo.is_potentially_hazardous;
 
@@ -198,9 +199,12 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                                                 }`}
                                         >
                                             <td className="py-4 px-4">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-3">
                                                     {isHazardous && (
-                                                        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                        <span className="relative flex h-3 w-3 flex-shrink-0">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                        </span>
                                                     )}
                                                     <div>
                                                         <p className="text-white font-medium text-sm">
@@ -280,13 +284,18 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                 </div>
 
                 {/* Results count */}
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="mt-4 pt-4 border-t md:gap-0 gap-1 border-white/10 flex items-center justify-between">
                     <p className="text-gray-500 text-sm">
-                        Showing {Math.min(15, filteredAndSortedNeos.length)} of {filteredAndSortedNeos.length} asteroids
+                        Showing {Math.min(displayCount, filteredAndSortedNeos.length)} of {filteredAndSortedNeos.length} asteroids
                     </p>
-                    {filteredAndSortedNeos.length > 15 && (
-                        <Button variant="outline" size="sm" className="text-gray-400 border-white/10 hover:bg-white/5">
-                            Load More
+                    {filteredAndSortedNeos.length > displayCount && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDisplayCount(prev => prev + 8)}
+                            className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white cursor-pointer transition-all w-fit h-fit"
+                        >
+                            Load More <br />({filteredAndSortedNeos.length - displayCount} remaining)
                         </Button>
                     )}
                 </div>

@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Bell, Clock, Calendar, RefreshCw } from 'lucide-react';
+import { Bell, Clock, Calendar, RefreshCw, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const DashboardHeader = ({ title, subtitle, onRefresh }) => {
+const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount = 3, onMenuClick, sidebarCollapsed = false }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    // Scroll detection for sticky header
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollThreshold = 50; // pixels to scroll before header becomes sticky
+            setIsScrolled(window.scrollY > scrollThreshold);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     // Real-time clock update every second
     useEffect(() => {
@@ -39,28 +51,49 @@ const DashboardHeader = ({ title, subtitle, onRefresh }) => {
         setTimeout(() => setIsRefreshing(false), 1000);
     };
 
+    const handleNotificationClick = () => {
+        if (onOpenAlerts) {
+            onOpenAlerts();
+        }
+    };
+
     return (
-        <header className="flex items-center justify-between py-6 px-8 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-            <div>
-                <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-white">{title}</h1>
-                    <Badge
-                        variant="outline"
-                        className="bg-green-500/20 border-green-500/50 text-green-400 gap-1.5"
-                    >
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        LIVE
-                    </Badge>
+        <header className={`flex items-center justify-between py-4 px-4 md:py-6 md:px-8 border-b border-white/10 backdrop-blur-md top-0 z-20 transition-all duration-300 right-0 ${isScrolled
+                ? `fixed bg-black/90 shadow-lg shadow-black/30 left-0 ${sidebarCollapsed ? 'md:left-20' : 'md:left-[280px]'}`
+                : 'bg-black/20'
+            }`}>
+            <div className="flex items-center gap-3">
+                {/* Mobile Menu Button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onMenuClick}
+                    className="md:hidden text-gray-400 hover:text-white"
+                >
+                    <Menu className="w-6 h-6" />
+                </Button>
+
+                <div>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-xl md:text-2xl font-bold text-white">{title}</h1>
+                        <Badge
+                            variant="outline"
+                            className="bg-green-500/20 border-green-500/50 text-green-400 gap-1.5 hidden sm:flex"
+                        >
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            LIVE
+                        </Badge>
+                    </div>
+                    <p className="text-gray-400 text-xs md:text-sm">{subtitle}</p>
                 </div>
-                <p className="text-gray-400 text-sm">{subtitle}</p>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 md:gap-6">
                 {/* Date & Time Display */}
-                <div className="hidden md:flex items-center gap-6 text-sm">
+                <div className="hidden lg:flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                         <Calendar className="w-4 h-4 text-cyan-400" />
                         <span className="text-gray-300">{dateStr}</span>
@@ -72,7 +105,7 @@ const DashboardHeader = ({ title, subtitle, onRefresh }) => {
                 </div>
 
                 {/* Divider */}
-                <div className="hidden md:block w-px h-8 bg-white/10" />
+                <div className="hidden lg:block w-px h-8 bg-white/10" />
 
                 {/* Refresh Data Button */}
                 <Button
@@ -90,12 +123,15 @@ const DashboardHeader = ({ title, subtitle, onRefresh }) => {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative text-gray-400 hover:text-white hover:bg-white/5"
+                    onClick={handleNotificationClick}
+                    className="relative text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all duration-200"
                 >
                     <Bell className="w-5 h-5" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
-                        3
-                    </span>
+                    {alertCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold animate-pulse">
+                            {alertCount}
+                        </span>
+                    )}
                 </Button>
             </div>
         </header>

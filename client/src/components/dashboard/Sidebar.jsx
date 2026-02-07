@@ -11,7 +11,8 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    Rocket
+    Rocket,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,33 +27,91 @@ const navItems = [
     { id: 'community', label: 'Community', icon: MessageSquare },
 ];
 
-const Sidebar = ({ activeView, setActiveView, user }) => {
-    const [collapsed, setCollapsed] = useState(false);
+const Sidebar = ({ activeView, setActiveView, user, collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
+    // Determine visibility based on breakpoint and state
+    // Mobile: visible only when mobileOpen is true
+    // Desktop (md+): always visible
 
     return (
-        <motion.aside
-            initial={false}
-            animate={{ width: collapsed ? 80 : 280 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="h-screen bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col fixed left-0 top-0 z-40"
-        >
-            {/* Logo */}
-            <div className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
-                    <Rocket className="w-6 h-6 text-white" />
+        <>
+            {/* Mobile Sidebar - Only renders on mobile */}
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-50 w-[280px]
+                    bg-black/95 backdrop-blur-xl border-r border-white/10 flex flex-col
+                    transform transition-transform duration-300 ease-in-out
+                    md:hidden
+                    ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+                `}
+            >
+                <SidebarContent
+                    activeView={activeView}
+                    setActiveView={setActiveView}
+                    user={user}
+                    collapsed={false}
+                    setMobileOpen={setMobileOpen}
+                    isMobile={true}
+                />
+            </aside>
+
+            {/* Desktop Sidebar - Only renders on desktop */}
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-40
+                    bg-black/90 backdrop-blur-xl border-r border-white/10 flex-col
+                    transition-all duration-300 ease-in-out
+                    hidden md:flex
+                    ${collapsed ? 'w-20' : 'w-[280px]'}
+                `}
+            >
+                <SidebarContent
+                    activeView={activeView}
+                    setActiveView={setActiveView}
+                    user={user}
+                    collapsed={collapsed}
+                    setCollapsed={setCollapsed}
+                    isMobile={false}
+                />
+            </aside>
+        </>
+    );
+};
+
+const SidebarContent = ({ activeView, setActiveView, user, collapsed, setCollapsed, setMobileOpen, isMobile }) => {
+    return (
+        <>
+            {/* Logo Header */}
+            <div className={`p-4 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-3`}>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-cyan-500/20">
+                        <Rocket className="w-6 h-6 text-white" />
+                    </div>
+
+                    <AnimatePresence>
+                        {!collapsed && (
+                            <motion.span
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap"
+                            >
+                                SkyNetics
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
                 </div>
-                <AnimatePresence>
-                    {!collapsed && (
-                        <motion.span
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-cyan-400 to-purple-500"
-                        >
-                            SkyNetics
-                        </motion.span>
-                    )}
-                </AnimatePresence>
+
+                {/* Mobile Close Button */}
+                {isMobile && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMobileOpen(false)}
+                        className="text-gray-400 hover:text-white hover:bg-white/10"
+                    >
+                        <X className="w-5 h-5" />
+                    </Button>
+                )}
             </div>
 
             <Separator className="bg-white/10" />
@@ -68,24 +127,35 @@ const Sidebar = ({ activeView, setActiveView, user }) => {
                             key={item.id}
                             variant="ghost"
                             onClick={() => setActiveView(item.id)}
-                            className={`w-full justify-start gap-3 h-12 px-3 rounded-xl transition-all duration-200 ${isActive
-                                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                            className={`
+                                w-full h-12 rounded-xl transition-all duration-200 group relative overflow-hidden
+                                ${collapsed ? 'justify-center px-0' : 'justify-start px-3 gap-3'}
+                                ${isActive
+                                    ? 'bg-cyan-500/10 text-cyan-400'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
+                                }
+                            `}
+                            title={collapsed ? item.label : ''}
                         >
-                            <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-cyan-400' : ''}`} />
+                            {isActive && (
+                                <div className="absolute inset-y-0 left-0 w-1 bg-cyan-500 rounded-r-full" />
+                            )}
+
+                            <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-cyan-400' : 'group-hover:text-white'}`} />
+
                             <AnimatePresence>
                                 {!collapsed && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -10 }}
-                                        className="font-medium"
+                                        className="font-medium whitespace-nowrap"
                                     >
                                         {item.label}
                                     </motion.span>
                                 )}
                             </AnimatePresence>
+
                             {isActive && !collapsed && (
                                 <motion.div
                                     layoutId="activeIndicator"
@@ -101,30 +171,27 @@ const Sidebar = ({ activeView, setActiveView, user }) => {
 
             {/* User Profile */}
             <div className="p-3">
-                <div className={`flex items-center gap-3 p-2 rounded-xl bg-white/5 ${collapsed ? 'justify-center' : ''}`}>
-                    <Avatar className="w-10 h-10 border-2 border-cyan-500/50">
+                <div className={`
+                    flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5
+                    ${collapsed ? 'justify-center' : ''}
+                `}>
+                    <Avatar className="w-9 h-9 border border-cyan-500/30">
                         <AvatarImage src={user?.avatar} />
-                        <AvatarFallback className="bg-linear-to-br from-cyan-600 to-purple-600 text-white font-bold">
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-purple-600 text-white font-bold text-xs">
                             {user?.name?.charAt(0) || 'U'}
                         </AvatarFallback>
                     </Avatar>
-                    <AnimatePresence>
-                        {!collapsed && (
-                            <motion.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                className="flex-1 min-w-0"
-                            >
-                                <p className="text-sm font-medium text-white truncate">
-                                    {user?.name || 'Astronaut'}
-                                </p>
-                                <p className="text-xs text-gray-500 truncate">
-                                    {user?.email || 'user@skynetics.com'}
-                                </p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+
+                    {!collapsed && (
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">
+                                {user?.name || 'Astronaut'}
+                            </p>
+                            <p className="text-[10px] text-gray-500 truncate">
+                                {user?.email || 'user@skynetics.com'}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Settings & Logout */}
@@ -132,32 +199,36 @@ const Sidebar = ({ activeView, setActiveView, user }) => {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg"
+                        className="flex-1 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg h-8"
+                        title="Settings"
                     >
                         <Settings className="w-4 h-4" />
-                        {!collapsed && <span className="ml-2">Settings</span>}
+                        {!collapsed && <span className="ml-2 text-xs">Settings</span>}
                     </Button>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                        className="flex-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg h-8"
+                        title="Logout"
                     >
                         <LogOut className="w-4 h-4" />
-                        {!collapsed && <span className="ml-2">Logout</span>}
+                        {!collapsed && <span className="ml-2 text-xs">Logout</span>}
                     </Button>
                 </div>
             </div>
 
-            {/* Collapse Toggle */}
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCollapsed(!collapsed)}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black border border-white/20 text-gray-400 hover:text-white hover:bg-white/10"
-            >
-                {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
-        </motion.aside>
+            {/* Collapse Toggle - Desktop Only */}
+            {!isMobile && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCollapsed(!collapsed)}
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black border border-white/20 text-gray-400 hover:text-white hover:bg-white/10 z-50 shadow-xl"
+                >
+                    {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+                </Button>
+            )}
+        </>
     );
 };
 

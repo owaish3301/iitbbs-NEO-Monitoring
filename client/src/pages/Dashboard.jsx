@@ -27,6 +27,9 @@ const DashboardLayout = () => {
     avatar: null,
   };
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     // Load NEO data
     setNeoData(neoDataJson);
@@ -43,7 +46,7 @@ const DashboardLayout = () => {
   const handleAddToWatchlist = (neo) => {
     setWatchlist(prev => {
       if (prev.find(n => n.id === neo.id)) {
-        return prev; // Already in watchlist
+        return prev;
       }
       return [...prev, neo];
     });
@@ -86,13 +89,8 @@ const DashboardLayout = () => {
                   onAddToWatchlist={handleAddToWatchlist}
                 />
               </div>
-              <div className="space-y-6">
+              <div>
                 <RiskAnalysisPanel neoData={neoData} />
-                <Watchlist
-                  watchlist={watchlist}
-                  onView={handleSelectNeo}
-                  onRemove={handleRemoveFromWatchlist}
-                />
               </div>
             </div>
           </div>
@@ -131,13 +129,6 @@ const DashboardLayout = () => {
             <div className="lg:col-span-2">
               <CommunityChat />
             </div>
-            <div>
-              <Watchlist
-                watchlist={watchlist}
-                onView={handleSelectNeo}
-                onRemove={handleRemoveFromWatchlist}
-              />
-            </div>
           </div>
         );
 
@@ -149,28 +140,52 @@ const DashboardLayout = () => {
   const viewInfo = getViewTitle();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
       {/* Background gradient effects */}
       <div className="fixed inset-0 z-0">
         <div className="absolute top-0 left-1/4 w-150 h-[600px] bg-purple-600/10 rounded-full blur-[150px]" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px]" />
       </div>
 
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={(view) => {
+          setActiveView(view);
+          setIsMobileMenuOpen(false);
+        }}
         user={user}
+        collapsed={isSidebarCollapsed}
+        setCollapsed={setIsSidebarCollapsed}
+        mobileOpen={isMobileMenuOpen}
+        setMobileOpen={setIsMobileMenuOpen}
       />
 
       {/* Main Content */}
-      <main className="ml-[280px] relative z-10 transition-all duration-300">
+      <main
+        className={`relative z-10 transition-all duration-300 ml-0 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-[280px]'
+          }`}
+      >
         <DashboardHeader
           title={viewInfo.title}
           subtitle={viewInfo.subtitle}
+          onOpenAlerts={() => setActiveView('alerts')}
+          alertCount={3}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          sidebarCollapsed={isSidebarCollapsed}
         />
 
-        <div className="p-8">
+        <div className="p-4 md:p-8 overflow-x-hidden max-w-full">
           {renderContent()}
         </div>
       </main>
