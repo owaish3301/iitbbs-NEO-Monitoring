@@ -89,7 +89,7 @@ const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${import.meta.env.VITE_APP_URL || window.location.origin}/home`
+          redirectTo: `${window.location.origin}/auth`
         },
       });
 
