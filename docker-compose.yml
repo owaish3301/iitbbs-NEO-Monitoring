@@ -1,18 +1,6 @@
 version: "3.8"
 
 services:
-  # ---------- MongoDB ----------
-  mongo:
-    image: mongo:7
-    container_name: neo-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - neo-network
-
   # ---------- Express Backend ----------
   server:
     build:
@@ -24,11 +12,9 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGO_URI=mongodb://mongo:27017/neo-monitoring
+      - DATABASE_URL=${DATABASE_URL}
       - NASA_API_KEY=${NASA_API_KEY:-DEMO_KEY}
       - JWT_SECRET=${JWT_SECRET:-cosmic-watch-secret-key-change-in-production}
-    depends_on:
-      - mongo
     networks:
       - neo-network
 
@@ -45,9 +31,6 @@ services:
       - server
     networks:
       - neo-network
-
-volumes:
-  mongo-data:
 
 networks:
   neo-network:
