@@ -86,13 +86,8 @@ const DashboardLayout = () => {
                   onAddToWatchlist={handleAddToWatchlist}
                 />
               </div>
-              <div className="space-y-6">
+              <div>
                 <RiskAnalysisPanel neoData={neoData} />
-                <Watchlist
-                  watchlist={watchlist}
-                  onView={handleSelectNeo}
-                  onRemove={handleRemoveFromWatchlist}
-                />
               </div>
             </div>
           </div>
@@ -168,6 +163,8 @@ const DashboardLayout = () => {
         <DashboardHeader
           title={viewInfo.title}
           subtitle={viewInfo.subtitle}
+          onOpenAlerts={() => setActiveView('alerts')}
+          alertCount={3}
         />
 
         <div className="p-8">

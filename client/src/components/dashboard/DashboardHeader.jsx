@@ -3,7 +3,7 @@ import { Bell, Clock, Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const DashboardHeader = ({ title, subtitle, onRefresh }) => {
+const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount = 3 }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -37,6 +37,12 @@ const DashboardHeader = ({ title, subtitle, onRefresh }) => {
         }
         // Simulate refresh delay if no handler
         setTimeout(() => setIsRefreshing(false), 1000);
+    };
+
+    const handleNotificationClick = () => {
+        if (onOpenAlerts) {
+            onOpenAlerts();
+        }
     };
 
     return (
@@ -90,12 +96,15 @@ const DashboardHeader = ({ title, subtitle, onRefresh }) => {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative text-gray-400 hover:text-white hover:bg-white/5"
+                    onClick={handleNotificationClick}
+                    className="relative text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all duration-200"
                 >
                     <Bell className="w-5 h-5" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
-                        3
-                    </span>
+                    {alertCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold animate-pulse">
+                            {alertCount}
+                        </span>
+                    )}
                 </Button>
             </div>
         </header>

@@ -44,21 +44,33 @@ const RiskAnalysisPanel = ({ neoData }) => {
         return { label: 'High', color: 'text-red-400', bg: 'bg-red-500' };
     };
 
+    const CustomTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-black/80 border border-white/20 p-2 rounded-lg backdrop-blur-md shadow-xl">
+                    <p className="text-white font-medium text-sm">{payload[0].name}</p>
+                    <p className="text-gray-400 text-xs">Count: {payload[0].value}</p>
+                </div>
+            );
+        }
+        return null;
+    };
+
     const riskLevel = getRiskLevel(stats.riskScore);
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md h-full">
-            <CardHeader className="pb-2">
+        <Card className="bg-white/5 border-white/10 backdrop-blur-md h-[730px] flex flex-col">
+            <CardHeader className="pb-2 flex-shrink-0">
                 <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                     <Shield className="w-5 h-5 text-purple-400" />
                     Risk Analysis
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 overflow-y-auto custom-scrollbar flex-1 pr-2">
                 {/* Risk Score Gauge */}
                 <div className="flex items-center gap-6">
-                    <div className="relative w-24 h-24">
+                    <div className="relative w-24 h-24 flex-shrink-0">
                         <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
                             {/* Background circle */}
                             <circle
@@ -109,7 +121,7 @@ const RiskAnalysisPanel = ({ neoData }) => {
 
                 {/* Pie Chart */}
                 <div className="flex items-center gap-4">
-                    <div className="w-28 h-28">
+                    <div className="w-28 h-28 flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -120,18 +132,13 @@ const RiskAnalysisPanel = ({ neoData }) => {
                                     outerRadius={45}
                                     paddingAngle={4}
                                     dataKey="value"
+                                    stroke="none"
                                 >
                                     {pieData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(0,0,0,0.8)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px'
-                                    }}
-                                />
+                                <Tooltip content={<CustomTooltip />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -160,30 +167,49 @@ const RiskAnalysisPanel = ({ neoData }) => {
                         <Target className="w-4 h-4" />
                         Closest Approaches
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {closestApproaches.map((neo, index) => (
                             <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.1 }}
-                                className={`flex items-center justify-between p-3 rounded-lg ${neo.isHazardous ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/5'
-                                    }`}
+                                className="group"
                             >
-                                <div className="flex items-center gap-2">
-                                    <span className="text-lg font-bold text-gray-500">#{index + 1}</span>
-                                    <div>
-                                        <p className="text-white text-sm font-medium truncate max-w-[120px]">
-                                            {neo.name}
-                                        </p>
-                                        <p className="text-gray-500 text-xs">{neo.date}</p>
+                                <div className={`p-3 rounded-lg border transition-all duration-300 ${neo.isHazardous
+                                    ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
+                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                    }`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${neo.isHazardous ? 'bg-red-500/20 text-red-400' : 'bg-gray-700 text-gray-300'}`}>
+                                                #{index + 1}
+                                            </span>
+                                            <p className="text-white text-sm font-medium">
+                                                {neo.name}
+                                            </p>
+                                        </div>
+                                        {neo.isHazardous && (
+                                            <div className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-white font-medium text-sm">{neo.distance} LD</p>
-                                    {neo.isHazardous && (
-                                        <AlertTriangle className="w-3 h-3 text-red-400 ml-auto" />
-                                    )}
+
+                                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                                        <span>Distance</span>
+                                        <span className="text-white">{neo.distance} LD</span>
+                                    </div>
+
+                                    {/* Distance Bar Visual */}
+                                    <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full ${neo.isHazardous ? 'bg-gradient-to-r from-red-600 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`}
+                                            style={{ width: `${Math.max(10, 100 - (parseFloat(neo.distance) * 2))}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-right text-[10px] text-gray-600 mt-1">{neo.date}</p>
                                 </div>
                             </motion.div>
                         ))}

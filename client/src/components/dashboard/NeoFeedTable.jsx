@@ -19,6 +19,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterHazardous, setFilterHazardous] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'distance', direction: 'asc' });
+    const [displayCount, setDisplayCount] = useState(8);
 
     const neos = neoData?.neo_objects || [];
 
@@ -183,7 +184,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                         </thead>
                         <tbody>
                             <AnimatePresence>
-                                {filteredAndSortedNeos.slice(0, 15).map((neo, index) => {
+                                {filteredAndSortedNeos.slice(0, displayCount).map((neo, index) => {
                                     const approach = neo.close_approach_data[0];
                                     const isHazardous = neo.is_potentially_hazardous;
 
@@ -198,9 +199,12 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                                                 }`}
                                         >
                                             <td className="py-4 px-4">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-3">
                                                     {isHazardous && (
-                                                        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                        <span className="relative flex h-3 w-3 flex-shrink-0">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                        </span>
                                                     )}
                                                     <div>
                                                         <p className="text-white font-medium text-sm">
@@ -282,11 +286,16 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                 {/* Results count */}
                 <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
                     <p className="text-gray-500 text-sm">
-                        Showing {Math.min(15, filteredAndSortedNeos.length)} of {filteredAndSortedNeos.length} asteroids
+                        Showing {Math.min(displayCount, filteredAndSortedNeos.length)} of {filteredAndSortedNeos.length} asteroids
                     </p>
-                    {filteredAndSortedNeos.length > 15 && (
-                        <Button variant="outline" size="sm" className="text-gray-400 border-white/10 hover:bg-white/5">
-                            Load More
+                    {filteredAndSortedNeos.length > displayCount && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDisplayCount(prev => prev + 8)}
+                            className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white cursor-pointer transition-all"
+                        >
+                            Load More ({filteredAndSortedNeos.length - displayCount} remaining)
                         </Button>
                     )}
                 </div>
