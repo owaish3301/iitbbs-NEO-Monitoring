@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Bell, Clock, Calendar, RefreshCw, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount = 3, onMenuClick, sidebarCollapsed = false }) => {
+const DashboardHeader = memo(({ title, subtitle, onRefresh, onOpenAlerts, alertCount = 3, onMenuClick, sidebarCollapsed = false }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -19,11 +19,11 @@ const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount 
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Real-time clock update every second
+    // Real-time clock update every 10 seconds (second-precision unnecessary)
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
-        }, 1000);
+        }, 10_000);
 
         return () => clearInterval(timer);
     }, []);
@@ -38,7 +38,6 @@ const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount 
     const timeStr = currentTime.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true
     });
 
@@ -58,8 +57,8 @@ const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount 
     };
 
     return (
-        <header className={`flex items-center justify-between py-4 px-4 md:py-6 md:px-8 border-b border-white/10 backdrop-blur-md top-0 z-20 transition-all duration-300 right-0 ${isScrolled
-                ? `fixed bg-black/90 shadow-lg shadow-black/30 left-0 ${sidebarCollapsed ? 'md:left-20' : 'md:left-[280px]'}`
+        <header className={`flex items-center justify-between py-4 px-4 md:py-6 md:px-8 border-b border-white/10 backdrop-blur-sm top-0 z-20 transition-all duration-300 right-0 ${isScrolled
+                ? `fixed bg-black/95 shadow-lg shadow-black/30 left-0 ${sidebarCollapsed ? 'md:left-20' : 'md:left-[280px]'}`
                 : 'bg-black/20'
             }`}>
             <div className="flex items-center gap-3">
@@ -136,6 +135,7 @@ const DashboardHeader = ({ title, subtitle, onRefresh, onOpenAlerts, alertCount 
             </div>
         </header>
     );
-};
+});
 
+DashboardHeader.displayName = 'DashboardHeader';
 export default DashboardHeader;

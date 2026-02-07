@@ -1,5 +1,4 @@
 import { useState, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
     Filter,
@@ -90,7 +89,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
     };
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full relative">
+        <Card className="bg-white/5 border-white/10 overflow-hidden max-w-full relative">
             {/* Page loading overlay */}
             {loading && (
                 <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex items-center justify-center rounded-xl">
@@ -193,18 +192,13 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                             </tr>
                         </thead>
                         <tbody>
-                            <AnimatePresence>
-                                {filteredAndSortedNeos.map((neo, index) => {
+                            {filteredAndSortedNeos.map((neo, index) => {
                                     const approach = neo.close_approach_data[0];
                                     const isHazardous = neo.is_potentially_hazardous;
 
                                     return (
-                                        <motion.tr
+                                        <tr
                                             key={neo.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: 20 }}
-                                            transition={{ delay: index * 0.03 }}
                                             className={`border-b border-white/5 hover:bg-white/5 transition-colors ${isHazardous ? 'bg-red-500/5' : ''
                                                 }`}
                                         >
@@ -285,10 +279,9 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                                     </Button>
                                                 </div>
                                             </td>
-                                        </motion.tr>
+                                        </tr>
                                     );
                                 })}
-                            </AnimatePresence>
                         </tbody>
                     </table>
                 </div>

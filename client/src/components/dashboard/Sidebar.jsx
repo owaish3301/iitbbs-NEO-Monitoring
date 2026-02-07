@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -28,7 +28,7 @@ const navItems = [
     { id: 'community', label: 'Community', icon: MessageSquare },
 ];
 
-const Sidebar = ({ activeView, setActiveView, user, collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
+const Sidebar = memo(({ activeView, setActiveView, user, collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
     // Determine visibility based on breakpoint and state
     // Mobile: visible only when mobileOpen is true
     // Desktop (md+): always visible
@@ -39,7 +39,7 @@ const Sidebar = ({ activeView, setActiveView, user, collapsed, setCollapsed, mob
             <aside
                 className={`
                     fixed inset-y-0 left-0 z-50 w-[280px]
-                    bg-black/95 backdrop-blur-xl border-r border-white/10 flex flex-col
+                    bg-black/95 border-r border-white/10 flex flex-col
                     transform transition-transform duration-300 ease-in-out
                     md:hidden
                     ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -59,7 +59,7 @@ const Sidebar = ({ activeView, setActiveView, user, collapsed, setCollapsed, mob
             <aside
                 className={`
                     fixed inset-y-0 left-0 z-40
-                    bg-black/90 backdrop-blur-xl border-r border-white/10 flex-col
+                    bg-black/95 border-r border-white/10 flex-col
                     transition-all duration-300 ease-in-out
                     hidden md:flex
                     ${collapsed ? 'w-20' : 'w-[280px]'}
@@ -76,7 +76,7 @@ const Sidebar = ({ activeView, setActiveView, user, collapsed, setCollapsed, mob
             </aside>
         </>
     );
-};
+});
 
 const SidebarContent = ({ activeView, setActiveView, user, collapsed, setCollapsed, setMobileOpen, isMobile }) => {
     const navigate = useNavigate();
@@ -241,4 +241,5 @@ const SidebarContent = ({ activeView, setActiveView, user, collapsed, setCollaps
     );
 };
 
+Sidebar.displayName = 'Sidebar';
 export default Sidebar;

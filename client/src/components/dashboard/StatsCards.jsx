@@ -105,7 +105,7 @@ const BorderBeamCard = ({ stat, index }) => {
             <div className={`absolute inset-0 rounded-xl border border-white/10 ${stat.borderColor} transition-colors duration-300 pointer-events-none`} />
 
             {/* Main Card Content */}
-            <div className="relative h-full bg-black/40 backdrop-blur-xl rounded-xl p-5 flex flex-col justify-between overflow-hidden">
+            <div className="relative h-full bg-black/60 rounded-xl p-5 flex flex-col justify-between overflow-hidden">
 
                 {/* Subtle Background Gradient for Depth */}
                 <div className={`absolute top-0 right-0 w-32 h-32 ${stat.bgHighlight} blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-20 transition-opacity duration-700`} />

@@ -22,8 +22,22 @@ const mapSupabaseError = (err) => {
       return new AppError('Table does not exist', 500, 'DB_TABLE_MISSING');
     case '42703': // undefined_column
       return new AppError('Column does not exist', 500, 'DB_COLUMN_MISSING');
+    case '42501': // insufficient_privilege
+      return new AppError(
+        'Insufficient database privileges. Ensure the user_alert_states table has proper GRANTs for the service_role.',
+        500,
+        'DB_INSUFFICIENT_PRIVILEGE',
+        { code, hint: 'Run: GRANT ALL ON public.user_alert_states TO service_role, authenticated;' },
+      );
     case 'PGRST116': // Supabase: no rows returned
       return new AppError('Record not found', 404, 'DB_NOT_FOUND');
+    case 'PGRST204': // no table found
+    case 'PGRST205': // could not find the table
+      return new AppError(
+        'Required table does not exist. Please create the user_alert_states table in Supabase.',
+        500,
+        'DB_TABLE_MISSING',
+      );
     default:
       return null;
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -45,14 +45,18 @@ const DashboardLayout = () => {
 
   const { session } = useAuth();
 
-  // Derive user info from Supabase session
-  const user = session?.user
-    ? {
+  // Derive user info from Supabase session — memoised to keep stable reference
+  const user = useMemo(() => {
+    if (session?.user) {
+      return {
         name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Explorer',
         email: session.user.email,
         avatar: session.user.user_metadata?.avatar_url || null,
-      }
-    : { name: 'Space Explorer', email: 'explorer@skynetics.com', avatar: null };
+      };
+    }
+    return { name: 'Space Explorer', email: 'explorer@skynetics.com', avatar: null };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, session?.user?.email, session?.user?.user_metadata?.full_name, session?.user?.user_metadata?.avatar_url]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -125,7 +129,17 @@ const DashboardLayout = () => {
     setWatchlist(prev => prev.filter(n => n.id !== neoId));
   }, []);
 
-  const getViewTitle = () => {
+  // Stable callback for Sidebar — avoids recreating on every render
+  const handleSetActiveView = useCallback((view) => {
+    setActiveView(view);
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  const handleOpenAlerts = useCallback(() => setActiveView('alerts'), []);
+  const handleMenuClick = useCallback(() => setIsMobileMenuOpen(true), []);
+
+  // Memoised view title — only recalculated when activeView changes
+  const viewInfo = useMemo(() => {
     switch (activeView) {
       case 'overview':
         return { title: 'Mission Control', subtitle: 'Real-time NEO monitoring dashboard' };
@@ -142,7 +156,10 @@ const DashboardLayout = () => {
       default:
         return { title: 'Dashboard', subtitle: 'NEO Monitoring System' };
     }
-  };
+  }, [activeView]);
+
+  // Memoised unread count — avoids .filter() on every render
+  const unreadAlertCount = useMemo(() => alerts.filter(a => !a.read).length, [alerts]);
 
   const renderContent = () => {
     if (loading && !neoData) {
@@ -245,21 +262,19 @@ const DashboardLayout = () => {
     }
   };
 
-  const viewInfo = getViewTitle();
-
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
       {/* Background gradient effects */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-150 h-[600px] bg-purple-600/10 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-[600px] bg-purple-600/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-600/8 rounded-full blur-3xl" />
       </div>
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+            className="fixed inset-0 bg-black/60 z-30 md:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
@@ -268,10 +283,7 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
-        setActiveView={(view) => {
-          setActiveView(view);
-          setIsMobileMenuOpen(false);
-        }}
+        setActiveView={handleSetActiveView}
         user={user}
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
@@ -287,10 +299,10 @@ const DashboardLayout = () => {
         <DashboardHeader
           title={viewInfo.title}
           subtitle={viewInfo.subtitle}
-          onOpenAlerts={() => setActiveView('alerts')}
-          alertCount={alerts.filter(a => !a.read).length}
+          onOpenAlerts={handleOpenAlerts}
+          alertCount={unreadAlertCount}
           onRefresh={loadData}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onMenuClick={handleMenuClick}
           sidebarCollapsed={isSidebarCollapsed}
         />
 

@@ -61,7 +61,7 @@ const RiskAnalysisPanel = memo(({ neoData }) => {
     const riskLevel = getRiskLevel(stats.riskScore);
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md h-auto lg:h-[730px] flex flex-col">
+        <Card className="bg-white/5 border-white/10 h-auto lg:h-[730px] flex flex-col">
             <CardHeader className="pb-2 flex-shrink-0">
                 <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                     <Shield className="w-5 h-5 text-purple-400" />

@@ -79,11 +79,60 @@ All errors return:
 { "error": "Message", "code": "ERROR_CODE", "details": { ... } }
 ```
 
+## Alerts
+
+Alerts are **generated on-the-fly** from the NASA NEO feed (not stored). Per-user read/deleted state is persisted in the Supabase `user_alert_states` table.
+
+### Get Alerts
+`GET /neos/alerts?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+Auth: optional (if token provided, merges per-user read/deleted state).
+Response:
+```
+{
+  "range": { "start_date": "2026-02-01", "end_date": "2026-02-07" },
+  "total": 5,
+  "alerts": [
+    {
+      "id": "a1b2c3...",
+      "type": "close_approach | hazardous",
+      "title": "Close Approach Alert",
+      "message": "Asteroid (2010 PK9) will pass within 2.30 LD of Earth",
+      "date": "2026-02-04",
+      "time": "14:30 UTC",
+      "read": false,
+      "priority": "high | medium",
+      "neo_id": "3542519"
+    }
+  ]
+}
+```
+
+### Mark Alert Read
+`PATCH /neos/alerts/:id/read` (protected)
+Response:
+```
+{ "id": "a1b2c3...", "read": true }
+```
+
+### Mark All Alerts Read
+`PATCH /neos/alerts/read-all` (protected)
+Body: `{ "alert_ids": ["id1", "id2", ...] }`
+Response:
+```
+{ "updated": 3, "read": true }
+```
+
+### Delete Alert
+`DELETE /neos/alerts/:id` (protected)
+Soft-deletes the alert for the authenticated user.
+Response:
+```
+{ "id": "a1b2c3...", "deleted": true }
+```
+
 ## Planned (Dashboard)
 These are recommended based on the problem statement; not implemented yet:
 ```
-GET /alerts
-POST /alerts
 GET /watchlist
 POST /watchlist
 DELETE /watchlist/:id

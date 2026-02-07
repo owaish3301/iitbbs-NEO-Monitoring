@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bell,
@@ -12,10 +12,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { deleteAlertById, markAlertAsRead, markAllAlertsAsRead } from '@/services/api';
 
 const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts }) => {
     const [alerts, setLocalAlerts] = useState(initialAlerts);
     const [filter, setFilter] = useState('all');
+
+    useEffect(() => {
+        setLocalAlerts(initialAlerts);
+    }, [initialAlerts]);
 
     const unreadCount = alerts.filter(a => !a.read).length;
 
@@ -25,22 +30,55 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
         return true;
     });
 
-    const markAsRead = (id) => {
+    const markAsRead = async (id) => {
+        const existing = alerts.find(a => a.id === id);
+        if (!existing || existing.read) return;
+
+        const previous = alerts;
         const updated = alerts.map(a => a.id === id ? { ...a, read: true } : a);
         setLocalAlerts(updated);
         setParentAlerts?.(updated);
+
+        try {
+            await markAlertAsRead(id);
+        } catch (err) {
+            console.error('Failed to mark alert as read:', err);
+            setLocalAlerts(previous);
+            setParentAlerts?.(previous);
+        }
     };
 
-    const deleteAlert = (id) => {
+    const deleteAlert = async (id) => {
+        const previous = alerts;
         const updated = alerts.filter(a => a.id !== id);
         setLocalAlerts(updated);
         setParentAlerts?.(updated);
+
+        try {
+            await deleteAlertById(id);
+        } catch (err) {
+            console.error('Failed to delete alert:', err);
+            setLocalAlerts(previous);
+            setParentAlerts?.(previous);
+        }
     };
 
-    const markAllRead = () => {
+    const markAllRead = async () => {
+        const unreadIds = alerts.filter(a => !a.read).map(a => a.id);
+        if (unreadIds.length === 0) return;
+
+        const previous = alerts;
         const updated = alerts.map(a => ({ ...a, read: true }));
         setLocalAlerts(updated);
         setParentAlerts?.(updated);
+
+        try {
+            await markAllAlertsAsRead(unreadIds);
+        } catch (err) {
+            console.error('Failed to mark all alerts as read:', err);
+            setLocalAlerts(previous);
+            setParentAlerts?.(previous);
+        }
     };
 
     const getAlertIcon = (type) => {
@@ -68,7 +106,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
     };
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full">
+        <Card className="bg-white/5 border-white/10 overflow-hidden max-w-full">
             <CardHeader className="pb-4 relative">
                 {/* Title + Action */}
                 <div className="flex items-start sm:items-center justify-between gap-2">

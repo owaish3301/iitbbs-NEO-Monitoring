@@ -1,8 +1,16 @@
 import { fetchFeed, fetchLookup } from '../services/nasa.js';
-import { ValidationError, NotFoundError } from '../errors/appError.js';
+import crypto from 'node:crypto';
+import {
+  ValidationError,
+  NotFoundError,
+  InvalidTokenError,
+  UnauthorizedError,
+} from '../errors/appError.js';
 import { computeRiskScore, getMinMissDistanceKm, getDiameterMeters } from '../utils/risk.js';
+import { getSupabaseClient } from '../lib/supabase.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ALERT_STATE_TABLE = 'user_alert_states';
 
 const validateDate = (value, name) => {
   if (!value || !DATE_RE.test(value)) {
@@ -15,6 +23,94 @@ const diffDays = (start, end) => {
   const e = new Date(end);
   const diff = (e - s) / (1000 * 60 * 60 * 24);
   return Math.floor(diff);
+};
+
+const getRequiredSupabase = () => {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new UnauthorizedError('Supabase is not configured on the server');
+  }
+  return supabase;
+};
+
+const normalizeAlertId = (value) => String(value || '').trim();
+
+const normalizeAlertIds = (ids) => {
+  if (!Array.isArray(ids)) return [];
+  return [...new Set(ids.map(normalizeAlertId).filter(Boolean))];
+};
+
+const getAlertStatesByIds = async (userId, alertIds, { throwOnError = true } = {}) => {
+  const normalizedIds = normalizeAlertIds(alertIds);
+  if (normalizedIds.length === 0) return new Map();
+
+  const supabase = getRequiredSupabase();
+  const { data, error } = await supabase
+    .from(ALERT_STATE_TABLE)
+    .select('alert_id, is_read, is_deleted')
+    .eq('user_id', userId)
+    .in('alert_id', normalizedIds);
+
+  if (error) {
+    console.error('[getAlertStatesByIds] Supabase error:', error.code, error.message, error.hint || '');
+    if (throwOnError) throw error;
+    return new Map(); // graceful degradation
+  }
+
+  return new Map((data || []).map((row) => [row.alert_id, row]));
+};
+
+const upsertAlertStates = async (userId, rows) => {
+  const payload = (rows || [])
+    .map((row) => {
+      const alertId = normalizeAlertId(row.alert_id);
+      if (!alertId) return null;
+
+      return {
+        user_id: userId,
+        alert_id: alertId,
+        ...(typeof row.is_read === 'boolean' ? { is_read: row.is_read } : {}),
+        ...(typeof row.is_deleted === 'boolean' ? { is_deleted: row.is_deleted } : {}),
+        updated_at: new Date().toISOString(),
+      };
+    })
+    .filter(Boolean);
+
+  if (payload.length === 0) return;
+
+  const supabase = getRequiredSupabase();
+  const { error } = await supabase
+    .from(ALERT_STATE_TABLE)
+    .upsert(payload, { onConflict: 'user_id,alert_id' });
+
+  if (error) {
+    console.error('[upsertAlertStates] Supabase error:', error.code, error.message, error.hint || '');
+    throw error;
+  }
+};
+
+const getOptionalSupabaseUser = async (req) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : null;
+
+  if (!token) return null;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) {
+    throw new InvalidTokenError();
+  }
+
+  return data.user;
+};
+
+const buildAlertId = (type, neoId, approachDate) => {
+  const raw = `${type}:${neoId}:${approachDate || 'unknown'}`;
+  return crypto.createHash('sha1').update(raw).digest('hex').slice(0, 20);
 };
 
 // Flat normalized shape (used by /summary and /lookup)
@@ -81,8 +177,6 @@ const normalizeNeoForDashboard = (neo) => {
 // Generate alerts from real NEO data
 const generateAlerts = (neos) => {
   const alerts = [];
-  let alertId = 1;
-
   for (const neo of neos) {
     const isHazardous = !!neo.is_potentially_hazardous_asteroid;
     const approach = Array.isArray(neo.close_approach_data)
@@ -97,7 +191,7 @@ const generateAlerts = (neos) => {
     // Close approach alert — within 5 lunar distances
     if (lunarDist < 5) {
       alerts.push({
-        id: String(alertId++),
+        id: buildAlertId('close_approach', neo.id, approachDate),
         type: 'close_approach',
         title: 'Close Approach Alert',
         message: `Asteroid ${neo.name} will pass within ${lunarDist.toFixed(2)} LD of Earth`,
@@ -112,7 +206,7 @@ const generateAlerts = (neos) => {
     // Hazardous object alert
     if (isHazardous) {
       alerts.push({
-        id: String(alertId++),
+        id: buildAlertId('hazardous', neo.id, approachDate),
         type: 'hazardous',
         title: 'Hazardous Object Detected',
         message: `Potentially hazardous asteroid ${neo.name} detected`,
@@ -282,10 +376,27 @@ const getAlerts = async (req, res, next) => {
       throw new ValidationError('Date range must be 7 days or less');
     }
 
+    const user = await getOptionalSupabaseUser(req);
+
     const data = await fetchFeed({ start_date, end_date });
     const entries = data?.near_earth_objects || {};
     const rawItems = Object.values(entries).flat();
-    const alerts = generateAlerts(rawItems);
+    let alerts = generateAlerts(rawItems);
+
+    if (user?.id) {
+      const stateMap = await getAlertStatesByIds(
+        user.id,
+        alerts.map((alert) => alert.id),
+        { throwOnError: false } // graceful: return alerts even if DB fails
+      );
+
+      alerts = alerts
+        .filter((alert) => !stateMap.get(alert.id)?.is_deleted)
+        .map((alert) => ({
+          ...alert,
+          read: alert.read || !!stateMap.get(alert.id)?.is_read,
+        }));
+    }
 
     res.json({
       range: { start_date, end_date },
@@ -297,9 +408,101 @@ const getAlerts = async (req, res, next) => {
   }
 };
 
+const markAlertRead = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      throw new ValidationError('id is required');
+    }
+
+    const userId = req.supabaseUser?.id;
+    if (!userId) {
+      throw new InvalidTokenError();
+    }
+
+    await upsertAlertStates(userId, [
+      {
+        alert_id: id,
+        is_read: true,
+      },
+    ]);
+
+    res.json({
+      id: String(id),
+      read: true,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const markAllAlertsRead = async (req, res, next) => {
+  try {
+    const alertIds = req.body?.alert_ids;
+    if (!Array.isArray(alertIds) || alertIds.length === 0) {
+      throw new ValidationError('alert_ids must be a non-empty array');
+    }
+
+    const userId = req.supabaseUser?.id;
+    if (!userId) {
+      throw new InvalidTokenError();
+    }
+
+    const normalizedIds = normalizeAlertIds(alertIds);
+    await upsertAlertStates(
+      userId,
+      normalizedIds.map((alertId) => ({
+        alert_id: alertId,
+        is_read: true,
+      }))
+    );
+
+    res.json({
+      updated: normalizedIds.length,
+      read: true,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteAlert = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      throw new ValidationError('id is required');
+    }
+
+    const userId = req.supabaseUser?.id;
+    if (!userId) {
+      throw new InvalidTokenError();
+    }
+
+    const normalizedId = String(id);
+
+    await upsertAlertStates(userId, [
+      {
+        alert_id: normalizedId,
+        is_deleted: true,
+        is_read: true,
+      },
+    ]);
+
+    res.json({
+      id: normalizedId,
+      deleted: true,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   getFeed,
   getLookup,
   getSummary,
   getAlerts,
+  markAlertRead,
+  markAllAlertsRead,
+  deleteAlert,
 };

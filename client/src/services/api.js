@@ -118,6 +118,43 @@ export const fetchAlerts = (startDate, endDate) => {
   return request(`/neos/alerts?start_date=${startDate}&end_date=${endDate}`);
 };
 
+/**
+ * Mark one alert as read for current user.
+ * Returns { id, read }
+ */
+export const markAlertAsRead = async (alertId) => {
+  const data = await request(`/neos/alerts/${alertId}/read`, {
+    method: 'PATCH',
+  });
+  invalidateCache('/neos/alerts');
+  return data;
+};
+
+/**
+ * Mark many alerts as read for current user.
+ * Returns { updated, read }
+ */
+export const markAllAlertsAsRead = async (alertIds) => {
+  const data = await request('/neos/alerts/read-all', {
+    method: 'PATCH',
+    body: JSON.stringify({ alert_ids: alertIds }),
+  });
+  invalidateCache('/neos/alerts');
+  return data;
+};
+
+/**
+ * Delete one alert for current user.
+ * Returns { id, deleted }
+ */
+export const deleteAlertById = async (alertId) => {
+  const data = await request(`/neos/alerts/${alertId}`, {
+    method: 'DELETE',
+  });
+  invalidateCache('/neos/alerts');
+  return data;
+};
+
 // ─── Auth / User ────────────────────────────────────────────
 
 /**
