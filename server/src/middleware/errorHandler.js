@@ -32,8 +32,19 @@ const mapSupabaseError = (err) => {
 const errorHandler = (err, req, res, next) => {
   let finalError = err;
 
-  // Handle Supabase/PostgreSQL errors
-  if (err.code && !err.statusCode) {
+  // Handle Axios errors (from external API calls like NASA)
+  if (err.isAxiosError || err.constructor?.name === 'AxiosError') {
+    const status = err.response?.status || 502;
+    const msg = err.response?.data?.error_message || err.response?.data?.error || err.message || 'External API request failed';
+    finalError = new AppError(
+      `NASA API error: ${msg}`,
+      status >= 500 ? 502 : status,
+      'EXTERNAL_API_ERROR',
+      { url: err.config?.url, status: err.response?.status }
+    );
+  }
+  // Handle Supabase/PostgreSQL errors (have numeric-like codes, not Axios string codes)
+  else if (err.code && !err.statusCode && /^[0-9A-Z]{5}$|^PGRST/.test(err.code)) {
     const mappedError = mapSupabaseError(err);
     if (mappedError) {
       finalError = mappedError;

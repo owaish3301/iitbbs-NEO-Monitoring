@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -10,30 +10,65 @@ import Watchlist from '@/components/dashboard/Watchlist';
 import AlertsPanel from '@/components/dashboard/AlertsPanel';
 import OrbitViewer from '@/components/dashboard/OrbitViewer';
 import CommunityChat from '@/components/dashboard/CommunityChat';
+import { useAuth } from '@/context/AuthContext';
+import { fetchNeoFeed, fetchAlerts } from '@/services/api';
 
-// Import NEO data
-import neoDataJson from '@/data/neo-data.json';
+const getDateRange = () => {
+  const today = new Date();
+  const start = today.toISOString().split('T')[0];
+  const end = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+  return { start, end };
+};
 
 const DashboardLayout = () => {
   const [activeView, setActiveView] = useState('overview');
   const [neoData, setNeoData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
   const [selectedNeo, setSelectedNeo] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock user data
-  const user = {
-    name: 'Space Explorer',
-    email: 'explorer@skynetics.com',
-    avatar: null,
-  };
+  const { session } = useAuth();
+
+  // Derive user info from Supabase session
+  const user = session?.user
+    ? {
+        name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Explorer',
+        email: session.user.email,
+        avatar: session.user.user_metadata?.avatar_url || null,
+      }
+    : { name: 'Space Explorer', email: 'explorer@skynetics.com', avatar: null };
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    // Load NEO data
-    setNeoData(neoDataJson);
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { start, end } = getDateRange();
+
+      const [feedData, alertsData] = await Promise.all([
+        fetchNeoFeed(start, end),
+        fetchAlerts(start, end),
+      ]);
+
+      setNeoData(feedData);
+      setAlerts(alertsData.alerts || []);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSelectNeo = (neo) => {
     setSelectedNeo(neo);
@@ -76,6 +111,33 @@ const DashboardLayout = () => {
   };
 
   const renderContent = () => {
+    if (loading && !neoData) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">Loading NEO data from NASA...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (error && !neoData) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-400 mb-4">Failed to load data: {error}</p>
+            <button
+              onClick={loadData}
+              className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeView) {
       case 'overview':
         return (
@@ -118,7 +180,7 @@ const DashboardLayout = () => {
         );
 
       case 'alerts':
-        return <AlertsPanel />;
+        return <AlertsPanel alerts={alerts} setAlerts={setAlerts} />;
 
       case '3d-viewer':
         return <OrbitViewer />;
@@ -180,7 +242,8 @@ const DashboardLayout = () => {
           title={viewInfo.title}
           subtitle={viewInfo.subtitle}
           onOpenAlerts={() => setActiveView('alerts')}
-          alertCount={3}
+          alertCount={alerts.filter(a => !a.read).length}
+          onRefresh={loadData}
           onMenuClick={() => setIsMobileMenuOpen(true)}
           sidebarCollapsed={isSidebarCollapsed}
         />

@@ -13,42 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-// Mock alerts data
-const mockAlerts = [
-    {
-        id: '1',
-        type: 'close_approach',
-        title: 'Close Approach Alert',
-        message: 'Asteroid 2024 YR14 will pass within 2.5 LD of Earth',
-        date: '2026-02-08',
-        time: '14:30 UTC',
-        read: false,
-        priority: 'high',
-    },
-    {
-        id: '2',
-        type: 'watchlist',
-        title: 'Watchlist Update',
-        message: 'New data available for asteroid 2024 XR in your watchlist',
-        date: '2026-02-07',
-        time: '09:15 UTC',
-        read: false,
-        priority: 'medium',
-    },
-    {
-        id: '3',
-        type: 'hazardous',
-        title: 'Hazardous Object Detected',
-        message: 'New potentially hazardous asteroid 2024 ZQ discovered',
-        date: '2026-02-06',
-        time: '22:45 UTC',
-        read: true,
-        priority: 'high',
-    },
-];
-
-const AlertsPanel = () => {
-    const [alerts, setAlerts] = useState(mockAlerts);
+const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts }) => {
+    const [alerts, setLocalAlerts] = useState(initialAlerts);
     const [filter, setFilter] = useState('all');
 
     const unreadCount = alerts.filter(a => !a.read).length;
@@ -60,15 +26,21 @@ const AlertsPanel = () => {
     });
 
     const markAsRead = (id) => {
-        setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+        const updated = alerts.map(a => a.id === id ? { ...a, read: true } : a);
+        setLocalAlerts(updated);
+        setParentAlerts?.(updated);
     };
 
     const deleteAlert = (id) => {
-        setAlerts(prev => prev.filter(a => a.id !== id));
+        const updated = alerts.filter(a => a.id !== id);
+        setLocalAlerts(updated);
+        setParentAlerts?.(updated);
     };
 
     const markAllRead = () => {
-        setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+        const updated = alerts.map(a => ({ ...a, read: true }));
+        setLocalAlerts(updated);
+        setParentAlerts?.(updated);
     };
 
     const getAlertIcon = (type) => {
