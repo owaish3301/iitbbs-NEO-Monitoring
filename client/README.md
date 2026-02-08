@@ -1,16 +1,95 @@
-# React + Vite
+# Cosmic Watch — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the NEO Monitoring platform. Built with Vite, styled with
+Tailwind CSS, and uses Three.js for 3D asteroid orbit visualization.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick start
 
-## React Compiler
+```bash
+npm install
+cp .env.example .env       # fill in your Supabase keys
+npm run dev                 # starts on http://localhost:5173
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+In local dev, the Vite proxy forwards `/api` requests to the backend — no need
+to set `VITE_API_URL`.
 
-## Expanding the ESLint configuration
+## Environment variables
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| Variable                               | Purpose                              | Required |
+| -------------------------------------- | ------------------------------------ | -------- |
+| `VITE_SUPABASE_URL`                   | Your Supabase project URL            | Yes      |
+| `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Supabase anon/public key           | Yes      |
+| `VITE_API_URL`                         | Backend URL (leave empty for local dev, Vite proxies `/api`) | No |
+
+## Scripts
+
+| Command         | What it does                        |
+| --------------- | ----------------------------------- |
+| `npm run dev`   | Start Vite dev server (port 5173)   |
+| `npm run build` | Production build → `dist/`          |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint`  | Run ESLint                          |
+
+## Pages
+
+| Page          | Route         | Description                                  |
+| ------------- | ------------- | -------------------------------------------- |
+| Landing       | `/`           | Marketing page with features and hero        |
+| Auth          | `/auth`       | Login / register (Supabase Auth)             |
+| Dashboard     | `/dashboard`  | NEO feed, risk analysis, 3D orbits, alerts, chat |
+| Profile       | `/profile`    | User settings, sessions, danger zone         |
+| 404           | `*`           | Catch-all not found page                     |
+
+## Project structure
+
+```
+src/
+├── components/
+│   ├── dashboard/       # Dashboard widgets
+│   │   ├── AlertsPanel        — Close-approach alert cards
+│   │   ├── CommunityChat      — Socket.io live chat per asteroid
+│   │   ├── DashboardHeader    — Date picker + controls
+│   │   ├── NeoDetailPanel     — Detailed asteroid info sheet
+│   │   ├── NeoFeedTable       — Paginated NEO data table
+│   │   ├── OrbitViewer        — 3D Three.js orbit visualization
+│   │   ├── RiskAnalysisPanel  — Risk breakdown charts (Recharts)
+│   │   ├── Sidebar            — Navigation sidebar
+│   │   ├── StatsCards         — Summary stat cards
+│   │   └── Watchlist          — Saved asteroids list
+│   ├── landingPage/     # Landing page sections
+│   ├── profile/         # Profile page sections
+│   └── ui/              # Reusable primitives (shadcn/ui)
+├── context/
+│   └── AuthContext      — Supabase auth state provider
+├── lib/
+│   ├── supabase         — Supabase client init
+│   └── utils            — cn() and helpers
+├── pages/               # Route-level page components
+└── services/
+    └── api              — Backend API client (fetch wrapper with cache + dedup)
+```
+
+## Key dependencies
+
+- **React 19** + **React Router 7** — UI and routing
+- **Tailwind CSS 4** — Styling (via Vite plugin)
+- **React Three Fiber** + **Three.js** — 3D orbit visualization
+- **Recharts** — Charts and graphs
+- **Framer Motion** — Animations
+- **Supabase JS** — Auth (client-side)
+- **Socket.io Client** — Real-time chat
+- **shadcn/ui** + **Radix** — Accessible UI primitives
+
+## Docker
+
+The Dockerfile is a multi-stage build:
+
+1. `node:22-alpine` — installs deps and runs `vite build`
+2. `nginx:alpine` — serves `dist/` with the included `nginx.conf`
+
+Nginx proxies `/api/*` and `/socket.io/*` to the backend container. Vite
+build-time env vars (`VITE_*`) are passed as Docker build args from the root
+`.env` file via docker-compose.

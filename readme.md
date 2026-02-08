@@ -147,6 +147,10 @@ goes through the backend, which caches responses in Redis.
 | PATCH  | `/api/neos/alerts/:id/read`   | Mark an alert as read               | Yes           |
 | PATCH  | `/api/neos/alerts/read-all`   | Mark multiple alerts as read        | Yes           |
 | DELETE | `/api/neos/alerts/:id`        | Delete an alert                     | Yes           |
+| GET    | `/api/watchlist`              | Get user's watched asteroids        | Yes           |
+| POST   | `/api/watchlist`              | Add asteroid to watchlist           | Yes           |
+| PATCH  | `/api/watchlist/:neoId/alert` | Toggle alert for a watchlist item   | Yes           |
+| DELETE | `/api/watchlist/:neoId`       | Remove from watchlist               | Yes           |
 
 ---
 
