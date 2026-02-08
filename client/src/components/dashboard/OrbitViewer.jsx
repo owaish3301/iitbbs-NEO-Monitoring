@@ -412,7 +412,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => setShowOrbits(v => !v)}
-                        className={`border-white/10 text-xs ${showOrbits ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
+                        className={`border-white/10 cursor-pointer text-xs ${showOrbits ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
                     >
                         {showOrbits ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                         Orbits
@@ -421,7 +421,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => setShowLabels(v => !v)}
-                        className={`border-white/10 text-xs ${showLabels ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
+                        className={`border-white/10 cursor-pointer text-xs ${showLabels ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
                     >
                         {showLabels ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                         Labels
