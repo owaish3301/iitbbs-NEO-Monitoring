@@ -3,6 +3,7 @@ import {
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
+  toggleAlert,
 } from '../controllers/watchlistController.js';
 import verifySupabase from '../middleware/verifySupabase.js';
 
@@ -13,6 +14,7 @@ router.use(verifySupabase);
 
 router.get('/', getWatchlist);
 router.post('/', addToWatchlist);
+router.patch('/:neoId/alert', toggleAlert);
 router.delete('/:neoId', removeFromWatchlist);
 
 export default router;

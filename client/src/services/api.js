@@ -206,3 +206,15 @@ export const removeFromWatchlistApi = async (neoId) => {
   invalidateCache('/watchlist');
   return data;
 };
+
+/**
+ * Toggle alert_enabled for a watchlisted NEO.
+ * Returns { success, neo_id, alert_enabled }
+ */
+export const toggleNeoAlertApi = async (neoId) => {
+  const data = await request(`/watchlist/${neoId}/alert`, {
+    method: 'PATCH',
+  });
+  invalidateCache('/watchlist');
+  return data;
+};

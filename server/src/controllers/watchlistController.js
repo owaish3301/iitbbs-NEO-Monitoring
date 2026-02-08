@@ -43,6 +43,7 @@ const getWatchlist = async (req, res, next) => {
         neo_id: row.neo_id,
         neo_name: row.neo_name,
         added_at: row.added_at,
+        alert_enabled: !!row.alert_enabled,
       })),
     });
   } catch (err) {
@@ -93,6 +94,7 @@ const addToWatchlist = async (req, res, next) => {
         neo_id: data.neo_id,
         neo_name: data.neo_name,
         added_at: data.added_at,
+        alert_enabled: !!data.alert_enabled,
       },
     });
   } catch (err) {
@@ -130,4 +132,48 @@ const removeFromWatchlist = async (req, res, next) => {
   }
 };
 
-export { getWatchlist, addToWatchlist, removeFromWatchlist };
+/**
+ * PATCH /api/watchlist/:neoId/alert
+ * Toggle alert_enabled for a NEO in the user's watchlist.
+ */
+const toggleAlert = async (req, res, next) => {
+  try {
+    const userId = req.supabaseUser?.id;
+    if (!userId) throw new InvalidTokenError();
+
+    const { neoId } = req.params;
+    if (!neoId) throw new ValidationError('neoId is required');
+
+    const supabase = getRequiredSupabase();
+
+    // Fetch current state
+    const { data: existing, error: fetchErr } = await supabase
+      .from(WATCHLIST_TABLE)
+      .select('id, alert_enabled')
+      .eq('user_id', userId)
+      .eq('neo_id', String(neoId))
+      .single();
+
+    if (fetchErr || !existing) {
+      throw new ValidationError('NEO is not in your watchlist');
+    }
+
+    const newState = !existing.alert_enabled;
+
+    const { error: updateErr } = await supabase
+      .from(WATCHLIST_TABLE)
+      .update({ alert_enabled: newState })
+      .eq('id', existing.id);
+
+    if (updateErr) {
+      console.error('[toggleAlert] Supabase error:', updateErr.message);
+      throw updateErr;
+    }
+
+    res.json({ success: true, neo_id: neoId, alert_enabled: newState });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export { getWatchlist, addToWatchlist, removeFromWatchlist, toggleAlert };

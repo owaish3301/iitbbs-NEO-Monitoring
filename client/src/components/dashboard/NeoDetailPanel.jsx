@@ -5,6 +5,7 @@ import {
     ExternalLink,
     Star,
     Bell,
+    BellOff,
     AlertTriangle,
     Ruler,
     Zap,
@@ -20,10 +21,10 @@ import { fetchNeoLookup } from '@/services/api';
 import { useWatchlist } from '@/context/WatchlistContext';
 import OrbitViewer3D from './OrbitViewer3D';
 
-const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
+const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist }) => {
     const [orbitalData, setOrbitalData] = useState(null);
     const [orbitLoading, setOrbitLoading] = useState(false);
-    const { isInWatchlist, toggleWatchlist } = useWatchlist();
+    const { isInWatchlist, toggleWatchlist, hasAlert, toggleAlert } = useWatchlist();
 
     useEffect(() => {
         if (!neo?.id) return;
@@ -168,11 +169,23 @@ const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
                             {isInWatchlist(neo.id) ? 'In Watchlist' : 'Add to Watchlist'}
                         </Button>
                         <Button
-                            onClick={() => onSetAlert?.(neo)}
-                            className="flex-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30"
+                            onClick={() => {
+                                if (!isInWatchlist(neo.id)) {
+                                    toggleWatchlist(neo).then(() => toggleAlert(neo)).catch(() => {});
+                                } else {
+                                    toggleAlert(neo).catch(() => {});
+                                }
+                            }}
+                            className={`flex-1 ${
+                                isInWatchlist(neo.id) && hasAlert(neo.id)
+                                    ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50 hover:bg-purple-500/40'
+                                    : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30'
+                            }`}
                         >
-                            <Bell className="w-4 h-4 mr-2" />
-                            Set Alert
+                            {isInWatchlist(neo.id) && hasAlert(neo.id)
+                                ? <><BellOff className="w-4 h-4 mr-2" /> Alert Set</>
+                                : <><Bell className="w-4 h-4 mr-2" /> Set Alert</>
+                            }
                         </Button>
                     </div>
 

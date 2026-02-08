@@ -1,14 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Eye, Bell, Trash2, AlertTriangle, Rocket, Globe } from 'lucide-react';
+import { Star, Eye, Bell, BellOff, Trash2, AlertTriangle, Rocket, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useWatchlist } from '@/context/WatchlistContext';
 import { fetchNeoLookup } from '@/services/api';
 
-const Watchlist = ({ onView, onSetAlert, onViewAll3D, neoData }) => {
-    const { watchlistItems, removeFromWatchlist, loading } = useWatchlist();
+const Watchlist = ({ onView, onViewAll3D, neoData }) => {
+    const { watchlistItems, removeFromWatchlist, loading, hasAlert, toggleAlert } = useWatchlist();
     const [lookedUpNeos, setLookedUpNeos] = useState({});
     const [lookupLoading, setLookupLoading] = useState(false);
 
@@ -243,11 +243,17 @@ const Watchlist = ({ onView, onSetAlert, onViewAll3D, neoData }) => {
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
-                                                    onClick={() => onSetAlert?.(neo)}
-                                                    className="flex-1 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 h-8"
+                                                    onClick={() => toggleAlert(neo).catch(() => {})}
+                                                    className={`flex-1 h-8 ${
+                                                        hasAlert(neo.id)
+                                                            ? 'text-purple-400 bg-purple-500/15 hover:text-purple-300 hover:bg-purple-500/20'
+                                                            : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
+                                                    }`}
                                                 >
-                                                    <Bell className="w-3 h-3 mr-1" />
-                                                    Alert
+                                                    {hasAlert(neo.id)
+                                                        ? <><BellOff className="w-3 h-3 mr-1" /> Alerted</>
+                                                        : <><Bell className="w-3 h-3 mr-1" /> Alert</>
+                                                    }
                                                 </Button>
                                             )}
                                             <Button
