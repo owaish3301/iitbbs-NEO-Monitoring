@@ -1,4 +1,4 @@
-# Cosmic Watch — Near-Earth Object Monitoring Platform
+# SkyNetics — Near-Earth Object Monitoring Platform
 
 A full-stack dashboard that pulls live asteroid data from NASA and turns it into
 something you can actually understand: risk scores, interactive 3D orbits, alerts
