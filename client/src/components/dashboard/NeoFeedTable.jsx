@@ -15,11 +15,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useWatchlist } from '@/context/WatchlistContext';
 
 const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPageChange, loading }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterHazardous, setFilterHazardous] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'distance', direction: 'asc' });
+    const { isInWatchlist } = useWatchlist();
 
     const neos = neoData?.neo_objects || [];
 
@@ -263,9 +265,12 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => onAddToWatchlist?.(neo)}
-                                                        className="text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10"
+                                                        className={isInWatchlist(neo.id)
+                                                            ? 'text-yellow-400 bg-yellow-500/10 hover:text-yellow-300 hover:bg-yellow-500/20'
+                                                            : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10'
+                                                        }
                                                     >
-                                                        <Star className="w-4 h-4" />
+                                                        <Star className={`w-4 h-4 ${isInWatchlist(neo.id) ? 'fill-yellow-400' : ''}`} />
                                                     </Button>
                                                     <Button
                                                         size="sm"

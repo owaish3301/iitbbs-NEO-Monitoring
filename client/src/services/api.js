@@ -171,3 +171,50 @@ export const fetchCurrentUser = () => {
 export const fetchHealth = () => {
   return request('/health');
 };
+
+// ─── Watchlist Endpoints ────────────────────────────────────
+
+/**
+ * Fetch the authenticated user's watchlist.
+ * Returns { total, items: [{ id, neo_id, neo_name, added_at }] }
+ */
+export const fetchWatchlist = () => {
+  return request('/watchlist');
+};
+
+/**
+ * Add a NEO to the authenticated user's watchlist.
+ * Returns { success, item }
+ */
+export const addToWatchlistApi = async (neoId, neoName) => {
+  const data = await request('/watchlist', {
+    method: 'POST',
+    body: JSON.stringify({ neo_id: neoId, neo_name: neoName }),
+  });
+  invalidateCache('/watchlist');
+  return data;
+};
+
+/**
+ * Remove a NEO from the authenticated user's watchlist.
+ * Returns { success, neo_id, removed }
+ */
+export const removeFromWatchlistApi = async (neoId) => {
+  const data = await request(`/watchlist/${neoId}`, {
+    method: 'DELETE',
+  });
+  invalidateCache('/watchlist');
+  return data;
+};
+
+/**
+ * Toggle alert_enabled for a watchlisted NEO.
+ * Returns { success, neo_id, alert_enabled }
+ */
+export const toggleNeoAlertApi = async (neoId) => {
+  const data = await request(`/watchlist/${neoId}/alert`, {
+    method: 'PATCH',
+  });
+  invalidateCache('/watchlist');
+  return data;
+};

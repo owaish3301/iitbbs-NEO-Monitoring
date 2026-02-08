@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -42,9 +43,14 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <Button className="group relative bg-white text-black px-8 py-4 rounded-xl font-bold text-lg h-auto hover:bg-gray-200">
-              Launch Tracker
-              <RocketIcon className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+            <Button
+              asChild
+              className="group relative bg-white text-black px-8 py-4 rounded-xl font-bold text-lg h-auto hover:bg-gray-200 cursor-pointer"
+            >
+              <Link to="/auth">
+                Launch Tracker
+                <RocketIcon className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+              </Link>
             </Button>
             <Button variant="outline" className="bg-white/5 border-white/10 hover:shadow-[8px_0_30px_rgba(0,80,175,0.9)]
  hover:bg-black text-white px-8 py-4 rounded-xl font-bold text-lg h-auto backdrop-blur-md hover:text-blue-300 transition-all duration-300 ease-in-out">

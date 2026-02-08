@@ -1,21 +1,53 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     X,
     ExternalLink,
     Star,
     Bell,
+    BellOff,
     AlertTriangle,
     Ruler,
     Zap,
     Target,
     Calendar,
-    Globe2
+    Globe2,
+    Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { fetchNeoLookup } from '@/services/api';
+import { useWatchlist } from '@/context/WatchlistContext';
+import OrbitViewer3D from './OrbitViewer3D';
 
-const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
+const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist }) => {
+    const [orbitalData, setOrbitalData] = useState(null);
+    const [orbitLoading, setOrbitLoading] = useState(false);
+    const { isInWatchlist, toggleWatchlist, hasAlert, toggleAlert } = useWatchlist();
+
+    useEffect(() => {
+        if (!neo?.id) return;
+        let cancelled = false;
+        setOrbitLoading(true);
+        setOrbitalData(null);
+
+        fetchNeoLookup(neo.id)
+            .then((data) => {
+                if (!cancelled) {
+                    setOrbitalData(data?.raw?.orbital_data || null);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setOrbitalData(null);
+            })
+            .finally(() => {
+                if (!cancelled) setOrbitLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [neo?.id]);
+
     if (!neo) return null;
 
     const approach = neo.close_approach_data[0];
@@ -106,30 +138,54 @@ const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
                         </Button>
                     </div>
 
-                    {/* Orbital Preview Placeholder */}
-                    <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-cyan-900/30 rounded-xl border border-white/10 mb-6 flex items-center justify-center">
-                        <div className="text-center">
-                            <Globe2 className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                            <p className="text-gray-500 text-sm">3D Orbit Visualization</p>
-                            <p className="text-gray-600 text-xs">Coming Soon</p>
+                    {/* 3D Orbit Visualization */}
+                    {orbitLoading ? (
+                        <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-cyan-900/30 rounded-xl border border-white/10 mb-6 flex items-center justify-center">
+                            <div className="text-center">
+                                <Loader2 className="w-8 h-8 text-purple-400 mx-auto mb-2 animate-spin" />
+                                <p className="text-gray-500 text-sm">Loading orbital data...</p>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="mb-6">
+                            <OrbitViewer3D
+                                orbitalData={orbitalData}
+                                isHazardous={isHazardous}
+                                name={neo.name}
+                            />
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-3 mb-6">
                         <Button
-                            onClick={() => onAddToWatchlist?.(neo)}
-                            className="flex-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
+                            onClick={() => toggleWatchlist(neo).catch(() => {})}
+                            className={isInWatchlist(neo.id)
+                                ? 'flex-1 bg-yellow-500/30 text-yellow-300 border border-yellow-400/50 hover:bg-yellow-500/40'
+                                : 'flex-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30'
+                            }
                         >
-                            <Star className="w-4 h-4 mr-2" />
-                            Add to Watchlist
+                            <Star className={`w-4 h-4 mr-2 ${isInWatchlist(neo.id) ? 'fill-yellow-300' : ''}`} />
+                            {isInWatchlist(neo.id) ? 'In Watchlist' : 'Add to Watchlist'}
                         </Button>
                         <Button
-                            onClick={() => onSetAlert?.(neo)}
-                            className="flex-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30"
+                            onClick={() => {
+                                if (!isInWatchlist(neo.id)) {
+                                    toggleWatchlist(neo).then(() => toggleAlert(neo)).catch(() => {});
+                                } else {
+                                    toggleAlert(neo).catch(() => {});
+                                }
+                            }}
+                            className={`flex-1 ${
+                                isInWatchlist(neo.id) && hasAlert(neo.id)
+                                    ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50 hover:bg-purple-500/40'
+                                    : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30'
+                            }`}
                         >
-                            <Bell className="w-4 h-4 mr-2" />
-                            Set Alert
+                            {isInWatchlist(neo.id) && hasAlert(neo.id)
+                                ? <><BellOff className="w-4 h-4 mr-2" /> Alert Set</>
+                                : <><Bell className="w-4 h-4 mr-2" /> Set Alert</>
+                            }
                         </Button>
                     </div>
 

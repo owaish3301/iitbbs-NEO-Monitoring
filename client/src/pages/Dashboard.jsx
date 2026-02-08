@@ -9,7 +9,11 @@ import NeoDetailPanel from '@/components/dashboard/NeoDetailPanel';
 import Watchlist from '@/components/dashboard/Watchlist';
 import AlertsPanel from '@/components/dashboard/AlertsPanel';
 import { useAuth } from '@/context/AuthContext';
-import { fetchNeoFeed, fetchAlerts } from '@/services/api';
+import { useWatchlist } from '@/context/WatchlistContext';
+import { fetchNeoFeed, fetchAlerts, fetchNeoSummary } from '@/services/api';
+
+// ─── Lazy-load watchlist 3D viewer ───────────────────────
+const WatchlistOrbitViewer3D = lazy(() => import('@/components/dashboard/WatchlistOrbitViewer3D'));
 
 // ─── Lazy-load heavy dashboard views ─────────────────────
 const OrbitViewer = lazy(() => import('@/components/dashboard/OrbitViewer'));
@@ -35,8 +39,8 @@ const DashboardLayout = () => {
   const [activeView, setActiveView] = useState('overview');
   const [neoData, setNeoData] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [riskSummary, setRiskSummary] = useState(null);
   const [selectedNeo, setSelectedNeo] = useState(null);
-  const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,6 +48,7 @@ const DashboardLayout = () => {
   const [pageSize] = useState(20);
 
   const { session } = useAuth();
+  const { watchlistItems, addToWatchlist, removeFromWatchlist, toggleWatchlist, isInWatchlist } = useWatchlist();
 
   // Derive user info from Supabase session — memoised to keep stable reference
   const user = useMemo(() => {
@@ -60,6 +65,7 @@ const DashboardLayout = () => {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [watchlist3DItems, setWatchlist3DItems] = useState(null);
 
   const loadData = useCallback(async (isPageChange = false) => {
     try {
@@ -71,13 +77,15 @@ const DashboardLayout = () => {
       setError(null);
       const { start, end } = getDateRange();
 
-      const [feedData, alertsData] = await Promise.all([
+      const [feedData, alertsData, summaryData] = await Promise.all([
         fetchNeoFeed(start, end, { page, limit: pageSize }),
         fetchAlerts(start, end),
+        fetchNeoSummary(start, end),
       ]);
 
       setNeoData(feedData);
       setAlerts(alertsData.alerts || []);
+      setRiskSummary(summaryData);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError(err.message);
@@ -117,17 +125,12 @@ const DashboardLayout = () => {
   }, []);
 
   const handleAddToWatchlist = useCallback((neo) => {
-    setWatchlist(prev => {
-      if (prev.find(n => n.id === neo.id)) {
-        return prev;
-      }
-      return [...prev, neo];
-    });
-  }, []);
+    toggleWatchlist(neo).catch(() => {});
+  }, [toggleWatchlist]);
 
   const handleRemoveFromWatchlist = useCallback((neoId) => {
-    setWatchlist(prev => prev.filter(n => n.id !== neoId));
-  }, []);
+    removeFromWatchlist(neoId).catch(() => {});
+  }, [removeFromWatchlist]);
 
   // Stable callback for Sidebar — avoids recreating on every render
   const handleSetActiveView = useCallback((view) => {
@@ -137,6 +140,14 @@ const DashboardLayout = () => {
 
   const handleOpenAlerts = useCallback(() => setActiveView('alerts'), []);
   const handleMenuClick = useCallback(() => setIsMobileMenuOpen(true), []);
+
+  const handleViewAllWatchlist3D = useCallback((enrichedItems) => {
+    setWatchlist3DItems(enrichedItems);
+  }, []);
+
+  const handleCloseWatchlist3D = useCallback(() => {
+    setWatchlist3DItems(null);
+  }, []);
 
   // Memoised view title — only recalculated when activeView changes
   const viewInfo = useMemo(() => {
@@ -206,7 +217,7 @@ const DashboardLayout = () => {
                 />
               </div>
               <div>
-                <RiskAnalysisPanel neoData={neoData} />
+                <RiskAnalysisPanel neoData={neoData} riskSummary={riskSummary} />
               </div>
             </div>
           </div>
@@ -228,11 +239,11 @@ const DashboardLayout = () => {
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Watchlist
-              watchlist={watchlist}
               onView={handleSelectNeo}
-              onRemove={handleRemoveFromWatchlist}
+              onViewAll3D={handleViewAllWatchlist3D}
+              neoData={neoData}
             />
-            <RiskAnalysisPanel neoData={neoData} />
+            <RiskAnalysisPanel neoData={neoData} riskSummary={riskSummary} />
           </div>
         );
 
@@ -242,7 +253,7 @@ const DashboardLayout = () => {
       case '3d-viewer':
         return (
           <Suspense fallback={<PanelLoader />}>
-            <OrbitViewer />
+            <OrbitViewer neoData={neoData} onSelectNeo={handleSelectNeo} />
           </Suspense>
         );
 
@@ -319,6 +330,18 @@ const DashboardLayout = () => {
             onClose={handleCloseDetail}
             onAddToWatchlist={handleAddToWatchlist}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Watchlist 3D Viewer Overlay */}
+      <AnimatePresence>
+        {watchlist3DItems && (
+          <Suspense fallback={<PanelLoader />}>
+            <WatchlistOrbitViewer3D
+              watchlistNeos={watchlist3DItems}
+              onClose={handleCloseWatchlist3D}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>

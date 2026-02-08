@@ -5,12 +5,15 @@ import './index.css'
 import './App.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
+import { WatchlistProvider } from './context/WatchlistContext'
 
 createRoot(document.getElementById('root')).render(
   // <StrictMode>
   <BrowserRouter>
     <AuthProvider>
-      <App />
+      <WatchlistProvider>
+        <App />
+      </WatchlistProvider>
     </AuthProvider>
   </BrowserRouter>
   // </StrictMode>

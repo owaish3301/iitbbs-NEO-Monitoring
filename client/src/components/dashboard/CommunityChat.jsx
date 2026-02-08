@@ -1,13 +1,125 @@
-import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, Hash, Loader2, Users, Sparkles, Wifi, WifiOff, Smile } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Loader2, Wifi, WifiOff, Smile, Rocket, ChevronDown, Copy, Check, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import supabase from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+
+// Quick emoji list
+const EMOJI_LIST = ['🚀', '🛸', '🌍', '🌙', '⭐', '✨', '☄️', '🔭', '👨‍🚀', '😀', '😂', '😊', '😎', '🤔', '👍', '👏', '🔥', '💯', '❤️', '💙', '🎉', '⚡', '💪', '🙌'];
+
+// Animated star component
+const Star = ({ delay, duration, size, top, left }) => (
+    <motion.div
+        className="absolute rounded-full bg-white"
+        style={{ width: size, height: size, top: `${top}%`, left: `${left}%` }}
+        animate={{
+            opacity: [0.2, 1, 0.2],
+            scale: [1, 1.2, 1],
+        }}
+        transition={{
+            duration: duration,
+            delay: delay,
+            repeat: Infinity,
+            ease: "easeInOut"
+        }}
+    />
+);
+
+// Generate random stars
+const generateStars = (count) => {
+    return Array.from({ length: count }, (_, i) => ({
+        id: i,
+        delay: Math.random() * 3,
+        duration: 2 + Math.random() * 3,
+        size: Math.random() * 2 + 1,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+    }));
+};
+
+const STARS = generateStars(50);
+
+// Memoized message component
+const MessageItem = memo(({ msg, isCurrentUser, avatarColor, formatTime, onCopy, onDelete }) => {
+    const [showActions, setShowActions] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(msg.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        onCopy?.();
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className={`group flex gap-2.5 py-1.5 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+            onMouseEnter={() => setShowActions(true)}
+            onMouseLeave={() => setShowActions(false)}
+        >
+            <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5 ring-2 ring-white/10 shadow-lg">
+                <AvatarFallback className={`${avatarColor} text-white text-xs font-bold`}>
+                    {msg.user_email.charAt(0).toUpperCase()}
+                </AvatarFallback>
+            </Avatar>
+
+            <div className={`flex flex-col max-w-[75%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                <div className={`flex items-center gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                    <span className={`text-xs font-semibold ${isCurrentUser ? 'text-cyan-300' : 'text-gray-300'}`}>
+                        {isCurrentUser ? 'You' : msg.user_email.split('@')[0]}
+                    </span>
+                    <span className="text-[10px] text-gray-500">{formatTime(msg.created_at)}</span>
+                </div>
+
+                <div className="relative flex items-center gap-1.5">
+                    <AnimatePresence>
+                        {showActions && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className={`flex items-center gap-0.5 ${isCurrentUser ? 'order-first' : 'order-last'}`}
+                            >
+                                <button
+                                    onClick={handleCopy}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                    title="Copy"
+                                >
+                                    {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                                {isCurrentUser && (
+                                    <button
+                                        onClick={() => onDelete?.(msg.id)}
+                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all"
+                                        title="Delete"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words backdrop-blur-sm ${isCurrentUser
+                        ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-tr-sm shadow-xl shadow-cyan-500/20'
+                        : 'bg-white/10 text-gray-100 rounded-tl-sm border border-white/10 hover:bg-white/15 transition-colors'
+                        }`}>
+                        {msg.content}
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+});
+
+MessageItem.displayName = 'MessageItem';
 
 const CommunityChat = () => {
     const { session } = useAuth();
@@ -16,186 +128,183 @@ const CommunityChat = () => {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
-    const [typingIndicator, setTypingIndicator] = useState(false);
+    const [showScrollButton, setShowScrollButton] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [onlineCount] = useState(() => Math.floor(Math.random() * 20) + 5);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const inputRef = useRef(null);
+    const emojiPickerRef = useRef(null);
 
-    // Scroll to bottom of chat
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    // Close emoji picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const scrollToBottom = useCallback((smooth = true) => {
+        messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }, []);
+
+    const handleScroll = useCallback(() => {
+        if (!messagesContainerRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+    }, []);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        scrollToBottom(false);
+    }, [messages, scrollToBottom]);
 
     useEffect(() => {
         let isSubscribed = true;
         let channel = null;
 
-        // Fetch initial messages
         const fetchMessages = async () => {
             try {
                 const { data, error } = await supabase
                     .from('messages')
                     .select('*')
                     .order('created_at', { ascending: true })
-                    .limit(50);
+                    .limit(100);
 
                 if (error) throw error;
-                if (isSubscribed) {
-                    setMessages(data || []);
-                }
+                if (isSubscribed) setMessages(data || []);
             } catch (error) {
-                console.error('Error fetching messages:', error);
-                if (isSubscribed) {
-                    toast.error('Failed to load messages: ' + error.message);
-                }
+                if (isSubscribed) toast.error('Failed to load messages');
             } finally {
-                if (isSubscribed) {
-                    setLoading(false);
-                }
+                if (isSubscribed) setLoading(false);
             }
         };
 
         fetchMessages();
 
-        // Subscribe to real-time changes with a small delay to avoid race conditions
         const setupRealtimeSubscription = () => {
             if (!isSubscribed) return;
-
-            console.log('Setting up Supabase Realtime subscription...');
             channel = supabase
                 .channel('messages-realtime-' + Date.now())
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'messages',
-                    },
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
                     (payload) => {
                         if (!isSubscribed) return;
-                        console.log('New message received via realtime:', payload);
                         setMessages((prev) => {
-                            // Prevent duplicates if we already added it optimistically
-                            const exists = prev.some(msg => msg.id === payload.new.id);
-                            if (exists) {
-                                console.log('Message already exists, skipping duplicate');
-                                return prev;
-                            }
+                            if (prev.some(msg => msg.id === payload.new.id)) return prev;
                             return [...prev, payload.new];
                         });
                     }
                 )
-                .subscribe((status, err) => {
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' },
+                    (payload) => {
+                        if (!isSubscribed) return;
+                        setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+                    }
+                )
+                .subscribe((status) => {
                     if (!isSubscribed) return;
-                    console.log('Subscription status:', status, err || '');
                     setIsConnected(status === 'SUBSCRIBED');
-
-                    if (status === 'SUBSCRIBED') {
-                        console.log('Successfully subscribed to messages channel');
-                    }
-                    if (status === 'CHANNEL_ERROR') {
-                        console.error('Realtime channel error:', err);
-                        toast.error('Realtime connection failed. Please check if Realtime is enabled in your Supabase project.');
-                    }
-                    if (status === 'TIMED_OUT') {
-                        console.error('Realtime connection timed out - retrying...');
-                        // Retry after timeout
-                        setTimeout(() => {
-                            if (isSubscribed && channel) {
-                                supabase.removeChannel(channel);
-                                setupRealtimeSubscription();
-                            }
-                        }, 2000);
-                    }
                 });
         };
 
-        // Small delay to let React Strict Mode cleanup finish
         const timeoutId = setTimeout(setupRealtimeSubscription, 100);
-
         return () => {
             isSubscribed = false;
             clearTimeout(timeoutId);
-            if (channel) {
-                console.log('Cleaning up Supabase channel...');
-                supabase.removeChannel(channel);
-            }
+            if (channel) supabase.removeChannel(channel);
         };
     }, []);
 
     const handleSendMessage = async (e) => {
-        e.preventDefault();
-
-        if (!newMessage.trim() || !session?.user) return;
+        e?.preventDefault();
+        const trimmedMessage = newMessage.trim();
+        if (!trimmedMessage || !session?.user || sending) return;
 
         setSending(true);
-        setTypingIndicator(true);
+        const optimisticId = `temp-${Date.now()}`;
+
+        const optimisticMessage = {
+            id: optimisticId,
+            content: trimmedMessage,
+            user_id: session.user.id,
+            user_email: session.user.email,
+            created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, optimisticMessage]);
+        setNewMessage('');
 
         try {
             const { data, error } = await supabase
                 .from('messages')
-                .insert([
-                    {
-                        content: newMessage.trim(),
-                        user_id: session.user.id,
-                        user_email: session.user.email,
-                    },
-                ])
+                .insert([{ content: trimmedMessage, user_id: session.user.id, user_email: session.user.email }])
                 .select()
                 .single();
 
             if (error) throw error;
-
-            // Optimistically add message to UI
-            setMessages((prev) => [...prev, data]);
-            setNewMessage('');
+            setMessages((prev) => prev.map(msg => msg.id === optimisticId ? data : msg));
             inputRef.current?.focus();
         } catch (error) {
-            console.error('Error sending message:', error);
-            toast.error('Failed to send: ' + error.message);
+            setMessages((prev) => prev.filter(msg => msg.id !== optimisticId));
+            setNewMessage(trimmedMessage);
+            toast.error('Failed to send message');
         } finally {
             setSending(false);
-            setTypingIndicator(false);
         }
     };
 
-    const formatTime = (timestamp) => {
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            const { error } = await supabase.from('messages').delete().eq('id', messageId);
+            if (error) throw error;
+            setMessages((prev) => prev.filter(msg => msg.id !== messageId));
+            toast.success('Message deleted');
+        } catch (error) {
+            toast.error('Failed to delete message');
+        }
+    };
+
+    const handleEmojiSelect = (emoji) => {
+        setNewMessage((prev) => prev + emoji);
+        setShowEmojiPicker(false);
+        inputRef.current?.focus();
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+        if (e.key === 'Escape') setShowEmojiPicker(false);
+    };
+
+    const formatTime = useCallback((timestamp) => {
         const date = new Date(timestamp);
         const now = new Date();
         const isToday = date.toDateString() === now.toDateString();
-
-        if (isToday) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+        if (isToday) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' +
             date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+    }, []);
 
-    const getAvatarGradient = (email) => {
-        const gradients = [
-            'from-cyan-400 to-blue-500',
-            'from-purple-400 to-pink-500',
-            'from-green-400 to-emerald-500',
-            'from-amber-400 to-orange-500',
-            'from-rose-400 to-red-500',
-            'from-indigo-400 to-violet-500',
-            'from-teal-400 to-cyan-500',
-            'from-fuchsia-400 to-purple-500',
+    const getAvatarColor = useCallback((email) => {
+        const colors = [
+            'bg-gradient-to-br from-cyan-400 to-blue-600',
+            'bg-gradient-to-br from-purple-400 to-pink-600',
+            'bg-gradient-to-br from-emerald-400 to-teal-600',
+            'bg-gradient-to-br from-amber-400 to-orange-600',
+            'bg-gradient-to-br from-rose-400 to-red-600',
+            'bg-gradient-to-br from-indigo-400 to-violet-600',
         ];
         let hash = 0;
-        for (let i = 0; i < email.length; i++) {
-            hash = email.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return gradients[Math.abs(hash) % gradients.length];
-    };
+        for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    }, []);
 
-    const groupMessagesByDate = (messages) => {
+    const groupedMessages = (() => {
         const groups = [];
         let currentDate = null;
-
         messages.forEach((msg) => {
             const msgDate = new Date(msg.created_at).toDateString();
             if (msgDate !== currentDate) {
@@ -204,255 +313,247 @@ const CommunityChat = () => {
             }
             groups.push({ type: 'message', ...msg });
         });
-
         return groups;
-    };
+    })();
 
     const formatDateDivider = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
-
         if (date.toDateString() === now.toDateString()) return 'Today';
         if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-        return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+        return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
     };
 
-    const groupedMessages = groupMessagesByDate(messages);
-
     return (
-        <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-800/90 to-slate-900/90 border border-white/10 backdrop-blur-xl h-[calc(100vh-180px)] min-h-[500px] flex flex-col shadow-2xl shadow-cyan-500/5">
-            {/* Animated background effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="fixed inset-0 w-screen h-screen flex flex-col overflow-hidden">
+            {/* ===== STUNNING SPACE BACKGROUND ===== */}
+            <div className="absolute inset-0 bg-[#0a0a0f]">
+                {/* Deep space gradient */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0d1033] via-[#0a0a0f] to-[#0f0a1a]" />
+
+                {/* Nebula effects */}
+                <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] opacity-50" />
+                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[150px] opacity-40" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-600/10 rounded-full blur-[200px] opacity-30" />
+
+                {/* Accent glow orbs */}
+                <div className="absolute top-20 right-1/4 w-32 h-32 bg-pink-500/20 rounded-full blur-[60px] animate-pulse" />
+                <div className="absolute bottom-40 left-1/4 w-24 h-24 bg-cyan-400/20 rounded-full blur-[50px] animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="absolute top-1/3 left-20 w-20 h-20 bg-purple-400/15 rounded-full blur-[40px] animate-pulse" style={{ animationDelay: '2s' }} />
+
+                {/* Animated stars */}
+                {STARS.map((star) => (
+                    <Star key={star.id} {...star} />
+                ))}
+
+                {/* Grid overlay for depth */}
+                <div
+                    className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                        `,
+                        backgroundSize: '50px 50px'
+                    }}
+                />
+
+                {/* Radial vignette */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
             </div>
 
-            {/* Header */}
-            <CardHeader className="relative z-10 pb-0 pt-4 px-5">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                                <MessageSquare className="w-5 h-5 text-cyan-400" />
-                            </div>
-                            <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400 animate-pulse" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-lg font-bold text-white tracking-tight">
-                                Community Chat
-                            </CardTitle>
-                            <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
-                                <Users className="w-3 h-3" />
-                                NEO Monitoring Network
-                            </p>
-                        </div>
+            {/* ===== HEADER ===== */}
+            <header className="relative z-10 flex-shrink-0 flex items-center justify-between h-14 px-5 border-b border-white/[0.08] bg-black/20 backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+                        <Rocket className="w-4 h-4 text-cyan-400" />
                     </div>
-
-                    {/* Connection Status */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-500 ${isConnected
-                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
-                            : 'bg-red-500/15 border border-red-500/30 text-red-400'
-                        }`}>
-                        <span className="relative flex h-2 w-2">
-                            {isConnected && (
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                            )}
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                        </span>
-                        {isConnected ? (
-                            <span className="flex items-center gap-1">
-                                <Wifi className="w-3 h-3" /> Live
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-1">
-                                <WifiOff className="w-3 h-3" /> Offline
-                            </span>
-                        )}
+                    <div>
+                        <h1 className="text-base font-bold text-white tracking-tight">Mission Control</h1>
+                        <p className="text-[11px] text-gray-500">
+                            {onlineCount} observers online • {messages.length} transmissions
+                        </p>
                     </div>
                 </div>
 
-                {/* Channel Tabs */}
-                <div className="flex gap-2 mt-4 pb-3 overflow-x-auto scrollbar-hide">
-                    <Button
-                        size="sm"
-                        className="group relative overflow-hidden whitespace-nowrap bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 text-cyan-300 border border-cyan-500/30 rounded-lg px-4 transition-all duration-300"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                        <Hash className="w-3.5 h-3.5 mr-1.5" />
-                        General
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-lg px-4 transition-all duration-300"
-                    >
-                        <Hash className="w-3.5 h-3.5 mr-1.5" />
-                        Alerts
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-lg px-4 transition-all duration-300"
-                    >
-                        <Hash className="w-3.5 h-3.5 mr-1.5" />
-                        Research
-                    </Button>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${isConnected
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+                    : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                    }`}>
+                    <span className="relative flex h-2 w-2">
+                        {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />}
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                    </span>
+                    {isConnected ? <><Wifi className="w-3.5 h-3.5" /> LIVE</> : <><WifiOff className="w-3.5 h-3.5" /> OFFLINE</>}
                 </div>
-            </CardHeader>
+            </header>
 
-            {/* Divider with glow */}
-            <div className="relative mx-5">
-                <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
-            </div>
-
-            <CardContent className="flex-1 flex flex-col min-h-0 p-5 pt-4">
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20">
+            {/* ===== MESSAGES AREA ===== */}
+            <main
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="relative z-10 flex-1 overflow-y-auto px-5 md:px-8 lg:px-16 py-4"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent' }}
+            >
+                <div className="max-w-4xl mx-auto">
                     {loading ? (
-                        <div className="flex flex-col justify-center items-center h-full gap-3">
+                        <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4">
                             <div className="relative">
-                                <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl animate-pulse" />
-                                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin relative" />
+                                <div className="absolute inset-0 bg-cyan-500/30 rounded-full blur-2xl animate-pulse" />
+                                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin relative" />
                             </div>
-                            <p className="text-sm text-gray-400 animate-pulse">Loading messages...</p>
+                            <span className="text-sm text-gray-400 font-medium">Establishing secure connection...</span>
                         </div>
                     ) : messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                            <div className="relative mb-4">
-                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-full blur-2xl" />
-                                <div className="relative p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-white/10">
-                                    <MessageSquare className="w-10 h-10 text-cyan-400/50" />
-                                </div>
+                        <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center mb-5 shadow-2xl">
+                                <Rocket className="w-10 h-10 text-cyan-400/70" />
                             </div>
-                            <h3 className="text-lg font-semibold text-white mb-1">No messages yet</h3>
-                            <p className="text-sm text-gray-400 max-w-[200px]">
-                                Be the first to start the conversation with the community!
-                            </p>
+                            <h3 className="text-xl font-bold text-white mb-2">No Transmissions Yet</h3>
+                            <p className="text-sm text-gray-400 max-w-[250px]">Be the first to broadcast a message to the NEO observer network</p>
                         </div>
                     ) : (
-                        groupedMessages.map((item) => {
-                            if (item.type === 'date') {
+                        <AnimatePresence initial={false}>
+                            {groupedMessages.map((item) => {
+                                if (item.type === 'date') {
+                                    return (
+                                        <div key={item.id} className="flex items-center gap-4 py-5 my-2">
+                                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                                                {formatDateDivider(item.date)}
+                                            </span>
+                                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                        </div>
+                                    );
+                                }
+
+                                const msg = item;
+                                const isCurrentUser = session?.user?.id === msg.user_id;
+
                                 return (
-                                    <div key={item.id} className="flex items-center gap-3 py-4">
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                                            {formatDateDivider(item.date)}
-                                        </span>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                                    </div>
+                                    <MessageItem
+                                        key={msg.id}
+                                        msg={msg}
+                                        isCurrentUser={isCurrentUser}
+                                        avatarColor={getAvatarColor(msg.user_email)}
+                                        formatTime={formatTime}
+                                        onCopy={() => toast.success('Copied!')}
+                                        onDelete={handleDeleteMessage}
+                                    />
                                 );
-                            }
-
-                            const msg = item;
-                            const isCurrentUser = session?.user?.id === msg.user_id;
-                            const avatarGradient = getAvatarGradient(msg.user_email);
-
-                            return (
-                                <div
-                                    key={msg.id}
-                                    className={`group flex items-end gap-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300 ${isCurrentUser ? 'flex-row-reverse' : ''
-                                        }`}
-                                >
-                                    {/* Avatar */}
-                                    <Avatar className="w-8 h-8 ring-2 ring-white/5 flex-shrink-0 mb-5">
-                                        <AvatarFallback className={`bg-gradient-to-br ${avatarGradient} text-white text-xs font-bold shadow-lg`}>
-                                            {msg.user_email.charAt(0).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-
-                                    {/* Message Content */}
-                                    <div className={`flex flex-col max-w-[75%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                                        {/* Username & Time */}
-                                        <div className={`flex items-center gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                                            <span className={`text-xs font-semibold ${isCurrentUser ? 'text-cyan-300' : 'text-gray-300'}`}>
-                                                {isCurrentUser ? 'You' : msg.user_email.split('@')[0]}
-                                            </span>
-                                            <span className="text-[10px] text-gray-500">
-                                                {formatTime(msg.created_at)}
-                                            </span>
-                                        </div>
-
-                                        {/* Message Bubble */}
-                                        <div
-                                            className={`relative px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all duration-200 ${isCurrentUser
-                                                    ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-br-md shadow-lg shadow-cyan-500/20'
-                                                    : 'bg-white/[0.07] text-gray-200 rounded-bl-md border border-white/5 hover:bg-white/10'
-                                                }`}
-                                        >
-                                            {msg.content}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })
+                            })}
+                        </AnimatePresence>
                     )}
-
-                    {/* Typing Indicator */}
-                    {typingIndicator && (
-                        <div className="flex items-center gap-2 py-2 animate-in fade-in duration-200">
-                            <div className="flex gap-1 px-4 py-3 bg-white/5 rounded-2xl rounded-bl-md">
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                        </div>
-                    )}
-
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-4" />
                 </div>
+            </main>
 
-                {/* Input Area */}
-                <form onSubmit={handleSendMessage} className="relative mt-4">
-                    <div className="relative group">
-                        {/* Glow effect on focus */}
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-500/50 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300" />
+            {/* Scroll to bottom */}
+            <AnimatePresence>
+                {showScrollButton && (
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        onClick={() => scrollToBottom()}
+                        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-4 py-2 rounded-full bg-cyan-500 text-white text-sm font-medium shadow-xl shadow-cyan-500/40 hover:bg-cyan-400 transition-colors"
+                    >
+                        <ChevronDown className="w-4 h-4" />
+                        New messages
+                    </motion.button>
+                )}
+            </AnimatePresence>
 
-                        <div className="relative flex items-center gap-2 bg-white/[0.05] border border-white/10 rounded-xl p-1.5 group-focus-within:border-cyan-500/50 transition-colors duration-300">
+            {/* ===== INPUT AREA ===== */}
+            <footer className="relative z-10 flex-shrink-0 p-4 border-t border-white/[0.08] bg-black/30 backdrop-blur-xl">
+                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
+                    <div className="flex items-center gap-3 relative">
+                        {/* Emoji Picker */}
+                        <div className="relative" ref={emojiPickerRef}>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 w-9 p-0 text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-all duration-200"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className={`h-10 w-10 p-0 flex-shrink-0 rounded-xl transition-all ${showEmojiPicker
+                                    ? 'text-yellow-400 bg-yellow-400/15'
+                                    : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
+                                    }`}
                             >
                                 <Smile className="w-5 h-5" />
                             </Button>
 
+                            <AnimatePresence>
+                                {showEmojiPicker && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute bottom-14 left-0 p-3 bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl z-30"
+                                    >
+                                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10 px-1">
+                                            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Quick Emojis</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEmojiPicker(false)}
+                                                className="p-1 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-8 gap-1 w-[220px]">
+                                            {EMOJI_LIST.map((emoji, i) => (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => handleEmojiSelect(emoji)}
+                                                    className="w-7 h-7 flex items-center justify-center text-lg hover:bg-white/10 rounded-lg transition-all hover:scale-125"
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        <div className="relative flex-1">
                             <Input
                                 ref={inputRef}
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type your message..."
-                                className="flex-1 bg-transparent border-0 text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                                onKeyDown={handleKeyDown}
+                                placeholder="Broadcast your message to the cosmos..."
+                                className="w-full h-11 bg-white/[0.05] border-white/[0.1] rounded-xl text-sm text-white placeholder:text-gray-500 focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all pr-12"
                                 disabled={sending}
+                                maxLength={1000}
                             />
-
-                            <Button
-                                type="submit"
-                                size="sm"
-                                disabled={!newMessage.trim() || sending}
-                                className={`h-9 w-9 p-0 rounded-lg transition-all duration-300 ${newMessage.trim()
-                                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25 scale-100'
-                                        : 'bg-white/5 text-gray-500 scale-95'
-                                    }`}
-                            >
-                                {sending ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Send className="w-4 h-4" />
-                                )}
-                            </Button>
+                            {newMessage.length > 800 && (
+                                <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-medium ${newMessage.length > 950 ? 'text-red-400' : 'text-gray-500'}`}>
+                                    {1000 - newMessage.length}
+                                </span>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Keyboard hint */}
-                    <p className="text-[10px] text-gray-500 text-center mt-2">
-                        Press <kbd className="px-1.5 py-0.5 bg-white/5 rounded text-gray-400 font-mono">Enter</kbd> to send
-                    </p>
+                        <Button
+                            type="submit"
+                            size="sm"
+                            disabled={!newMessage.trim() || sending}
+                            className={`h-10 w-10 p-0 flex-shrink-0 rounded-xl transition-all duration-200 ${newMessage.trim()
+                                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95'
+                                : 'bg-white/[0.05] text-gray-500 border border-white/10'
+                                }`}
+                        >
+                            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        </Button>
+                    </div>
                 </form>
-            </CardContent>
-        </Card>
+            </footer>
+        </div>
     );
 };
 

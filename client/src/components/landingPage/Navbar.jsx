@@ -78,8 +78,8 @@ const Navbar = () => {
     hover:after:w-full">
                 <a href="#community">Community</a>
               </Button>
-              <Button asChild className="bg-cyan-600/90 hover:bg-cyan-500 text-white px-5 py-2 rounded-full font-medium shadow-lg shadow-cyan-500/20 border border-cyan-400/20 transform hover:scale-105 transition-all h-auto">
-                <a href="/auth">Login / Register</a>
+              <Button asChild className="bg-cyan-600/90 hover:bg-cyan-500 text-white px-5 py-2 rounded-full font-medium shadow-lg shadow-cyan-500/20 border border-cyan-400/20 transform hover:scale-105 transition-all h-auto cursor-pointer">
+                <Link to="/auth">Login / Register</Link>
               </Button>
             </div>
           </div>
@@ -104,8 +104,8 @@ const Navbar = () => {
                   <Button variant="ghost" asChild className="justify-start text-gray-300 hover:text-cyan-400 hover:bg-transparent text-base font-medium">
                     <a href="#community">Community</a>
                   </Button>
-                  <Button asChild className="mt-2 bg-cyan-600/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-600/30 text-base font-medium justify-start h-auto py-2">
-                    <a href="/auth">Login</a>
+                  <Button asChild className="mt-2 bg-cyan-600/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-600/30 text-base font-medium justify-start h-auto py-2 cursor-pointer">
+                    <Link to="/auth">Login</Link>
                   </Button>
                 </div>
               </SheetContent>
