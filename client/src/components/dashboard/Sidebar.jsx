@@ -139,11 +139,11 @@ const SidebarContent = ({ activeView, setActiveView, user, collapsed, setCollaps
                             variant="ghost"
                             onClick={() => setActiveView(item.id)}
                             className={`
-                                w-full h-12 rounded-xl transition-all duration-200 group relative overflow-hidden
+                                w-full h-12 rounded-xl transition-all duration-200 group relative overflow-hidden cursor-pointer
                                 ${collapsed ? 'justify-center px-0' : 'justify-start px-3 gap-3'}
                                 ${isActive
-                                    ? 'bg-cyan-500/10 text-cyan-400'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-cyan-500/10 text-cyan-400 shadow-md shadow-cyan-500/10'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5 hover:shadow-md hover:shadow-white/5 hover:translate-x-1'
                                 }
                             `}
                             title={collapsed ? item.label : ''}

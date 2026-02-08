@@ -126,7 +126,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'all' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('all')}
-                                className={filterHazardous === 'all' ? 'bg-white/10 text-white' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 All
                             </Button>
@@ -134,7 +134,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'hazardous' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('hazardous')}
-                                className={filterHazardous === 'hazardous' ? 'bg-red-500/20 text-red-400' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'hazardous' ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:text-red-400'}`}
                             >
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 Hazardous
@@ -143,7 +143,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'safe' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('safe')}
-                                className={filterHazardous === 'safe' ? 'bg-green-500/20 text-green-400' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'safe' ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-green-400'}`}
                             >
                                 Safe
                             </Button>
@@ -195,98 +195,109 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                         </thead>
                         <tbody>
                             {filteredAndSortedNeos.map((neo, index) => {
-                                    const approach = neo.close_approach_data[0];
-                                    const isHazardous = neo.is_potentially_hazardous;
+                                const approach = neo.close_approach_data[0];
+                                const isHazardous = neo.is_potentially_hazardous;
 
-                                    return (
-                                        <tr
-                                            key={neo.id}
-                                            className={`border-b border-white/5 hover:bg-white/5 transition-colors ${isHazardous ? 'bg-red-500/5' : ''
-                                                }`}
-                                        >
-                                            <td className="py-4 px-4">
-                                                <div className="flex items-center gap-3">
-                                                    {isHazardous && (
-                                                        <span className="relative flex h-3 w-3 flex-shrink-0">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                                        </span>
-                                                    )}
-                                                    <div>
-                                                        <p className="text-white font-medium text-sm">
-                                                            {neo.name.replace(/[()]/g, '')}
-                                                        </p>
-                                                        <p className="text-gray-500 text-xs">ID: {neo.id}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 px-4">
-                                                <span className="text-gray-300 text-sm">
-                                                    {neo.estimated_diameter.min_m.toFixed(0)} - {neo.estimated_diameter.max_m.toFixed(0)}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-4">
-                                                <span className="text-gray-300 text-sm">
-                                                    {approach?.relative_velocity?.km_per_sec?.toFixed(2) || '—'}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-4">
-                                                <div>
-                                                    <span className="text-gray-300 text-sm">
-                                                        {approach?.miss_distance?.lunar?.toFixed(2)} LD
+                                return (
+                                    <tr
+                                        key={neo.id}
+                                        className={`
+                                            border-b border-white/5 
+                                            transition-all duration-300 ease-out
+                                            hover:bg-gradient-to-r hover:from-white/10 hover:to-transparent
+                                            hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]
+                                            hover:border-l-2 hover:border-l-cyan-400
+                                            hover:scale-[1.01] hover:-translate-y-[1px]
+                                            cursor-pointer
+                                            ${isHazardous
+                                                ? 'bg-red-500/5 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:border-l-red-400'
+                                                : ''
+                                            }
+                                        `}
+                                    >
+                                        <td className="py-4 px-4">
+                                            <div className="flex items-center gap-3">
+                                                {isHazardous && (
+                                                    <span className="relative flex h-3 w-3 flex-shrink-0">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                                                     </span>
-                                                    <p className="text-gray-500 text-xs">
-                                                        {(approach?.miss_distance?.kilometers / 1000000)?.toFixed(2)}M km
+                                                )}
+                                                <div>
+                                                    <p className="text-white font-medium text-sm">
+                                                        {neo.name.replace(/[()]/g, '')}
                                                     </p>
+                                                    <p className="text-gray-500 text-xs">ID: {neo.id}</p>
                                                 </div>
-                                            </td>
-                                            <td className="py-4 px-4">
-                                                <Badge
-                                                    variant="outline"
-                                                    className={isHazardous
-                                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                                        : 'bg-green-500/20 border-green-500/50 text-green-400'
-                                                    }
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <span className="text-gray-300 text-sm">
+                                                {neo.estimated_diameter.min_m.toFixed(0)} - {neo.estimated_diameter.max_m.toFixed(0)}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <span className="text-gray-300 text-sm">
+                                                {approach?.relative_velocity?.km_per_sec?.toFixed(2) || '—'}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <div>
+                                                <span className="text-gray-300 text-sm">
+                                                    {approach?.miss_distance?.lunar?.toFixed(2)} LD
+                                                </span>
+                                                <p className="text-gray-500 text-xs">
+                                                    {(approach?.miss_distance?.kilometers / 1000000)?.toFixed(2)}M km
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <Badge
+                                                variant="outline"
+                                                className={isHazardous
+                                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                                    : 'bg-green-500/20 border-green-500/50 text-green-400'
+                                                }
+                                            >
+                                                {isHazardous ? 'Hazardous' : 'Safe'}
+                                            </Badge>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => onSelectNeo?.(neo)}
+                                                    className="text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 cursor-pointer transition-all duration-200 hover:scale-110"
                                                 >
-                                                    {isHazardous ? 'Hazardous' : 'Safe'}
-                                                </Badge>
-                                            </td>
-                                            <td className="py-4 px-4">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => onSelectNeo?.(neo)}
-                                                        className="text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => onAddToWatchlist?.(neo)}
-                                                        className={isInWatchlist(neo.id)
-                                                            ? 'text-yellow-400 bg-yellow-500/10 hover:text-yellow-300 hover:bg-yellow-500/20'
-                                                            : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10'
-                                                        }
-                                                    >
-                                                        <Star className={`w-4 h-4 ${isInWatchlist(neo.id) ? 'fill-yellow-400' : ''}`} />
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        asChild
-                                                        className="text-gray-400 hover:text-white hover:bg-white/10"
-                                                    >
-                                                        <a href={neo.nasa_jpl_url} target="_blank" rel="noopener noreferrer">
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </a>
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                    <Eye className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => onAddToWatchlist?.(neo)}
+                                                    className={`cursor-pointer transition-all duration-200 hover:scale-110 ${isInWatchlist(neo.id)
+                                                        ? 'text-yellow-400 bg-yellow-500/10 hover:text-yellow-300 hover:bg-yellow-500/20'
+                                                        : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10'
+                                                    }`}
+                                                >
+                                                    <Star className={`w-4 h-4 ${isInWatchlist(neo.id) ? 'fill-yellow-400' : ''}`} />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    asChild
+                                                    className="text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer transition-all duration-200 hover:scale-110"
+                                                >
+                                                    <a href={neo.nasa_jpl_url} target="_blank" rel="noopener noreferrer">
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -305,7 +316,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 variant="outline"
                                 disabled={!neoData?.has_prev}
                                 onClick={() => onPageChange?.(page - 1)}
-                                className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="cursor-pointer text-gray-600 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 <ChevronLeft className="w-4 h-4 mr-1" />
                                 Prev
@@ -328,7 +339,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 .map((item) => {
                                     if (typeof item === 'string') {
                                         return (
-                                            <span key={item} className="text-gray-500 text-sm px-1">…</span>
+                                            <span key={item} className="text-gray-600 text-sm px-1">…</span>
                                         );
                                     }
                                     return (
@@ -339,8 +350,8 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                             onClick={() => onPageChange?.(item)}
                                             className={
                                                 item === page
-                                                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
-                                                    : 'text-gray-400 border-white/10 hover:bg-white/5 hover:text-white'
+                                                    ? 'cursor-pointer bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                                                    : 'cursor-pointer text-gray-600 border-white/10 hover:bg-white/5 hover:text-white'
                                             }
                                         >
                                             {item}
@@ -353,7 +364,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 variant="outline"
                                 disabled={!neoData?.has_next}
                                 onClick={() => onPageChange?.(page + 1)}
-                                className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="cursor-pointer text-gray-600 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 Next
                                 <ChevronRight className="w-4 h-4 ml-1" />

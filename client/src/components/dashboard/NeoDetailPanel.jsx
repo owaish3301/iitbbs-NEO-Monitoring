@@ -225,7 +225,7 @@ const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist }) => {
                     <Button
                         variant="outline"
                         asChild
-                        className="w-full border-white/10 text-gray-400 hover:text-white hover:bg-white/5"
+                        className="w-full border-white/10 text-gray-600 hover:text-white hover:bg-white/5 transition-all duration-100 ease-in"
                     >
                         <a href={neo.nasa_jpl_url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />

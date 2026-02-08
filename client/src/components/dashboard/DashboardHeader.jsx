@@ -93,11 +93,11 @@ const DashboardHeader = memo(({ title, subtitle, onRefresh, onOpenAlerts, alertC
             <div className="flex items-center gap-2 md:gap-6">
                 {/* Date & Time Display */}
                 <div className="hidden lg:flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-300">
                         <Calendar className="w-4 h-4 text-cyan-400" />
                         <span className="text-gray-300">{dateStr}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono cursor-pointer hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300">
                         <Clock className="w-4 h-4 text-purple-400" />
                         <span className="text-gray-300 tabular-nums">{timeStr}</span>
                     </div>

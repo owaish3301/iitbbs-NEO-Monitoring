@@ -1,7 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { Maximize2, Minimize2 } from 'lucide-react';
 
 /**
  * Compute points along a Keplerian orbit ellipse.
@@ -205,6 +206,23 @@ const OrbitScene = ({ orbitalData, isHazardous, name }) => {
 };
 
 const OrbitViewer3D = ({ orbitalData, isHazardous, name }) => {
+    const containerRef = useRef(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleChange);
+        return () => document.removeEventListener('fullscreenchange', handleChange);
+    }, []);
+
     if (!orbitalData?.semi_major_axis) {
         return (
             <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-cyan-900/30 rounded-xl border border-white/10 flex items-center justify-center">
@@ -214,11 +232,14 @@ const OrbitViewer3D = ({ orbitalData, isHazardous, name }) => {
     }
 
     return (
-        <div className="aspect-video rounded-xl border border-white/10 overflow-hidden relative bg-black">
+        <div
+            ref={containerRef}
+            className={`rounded-xl border border-white/10 overflow-hidden relative bg-black ${isFullscreen ? 'w-screen h-screen' : 'aspect-video'}`}
+        >
             <Canvas
                 camera={{ position: [0, 15, 25], fov: 50 }}
                 gl={{ antialias: true }}
-                style={{ background: 'black' }}
+                style={{ background: 'black', position: 'absolute', inset: 0, zIndex: 0 }}
             >
                 <OrbitScene
                     orbitalData={orbitalData}
@@ -226,7 +247,16 @@ const OrbitViewer3D = ({ orbitalData, isHazardous, name }) => {
                     name={name?.replace(/[()]/g, '') || 'Asteroid'}
                 />
             </Canvas>
-            <div className="absolute bottom-2 left-2 flex gap-3 text-[10px] text-gray-500 pointer-events-none">
+            {/* Maximize / Minimize button */}
+            <button
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                className="absolute top-2 right-2 p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors backdrop-blur-sm border border-white/10 cursor-pointer"
+                style={{ zIndex: 50 }}
+            >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+            <div className="absolute bottom-2 left-2 flex gap-3 text-[10px] text-gray-500 pointer-events-none" style={{ zIndex: 50 }}>
                 <span className="flex items-center gap-1">
                     <span className="w-2 h-0.5 bg-blue-500 inline-block rounded" /> Earth orbit
                 </span>

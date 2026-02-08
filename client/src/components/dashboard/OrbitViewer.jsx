@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Globe2, Eye, EyeOff, Loader2, AlertTriangle } from 'lucide-react';
+import { Globe2, Eye, EyeOff, Loader2, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
 import { fetchNeoLookup, fetchNeoFeed } from '@/services/api';
 
 // ─── Orbital math ───────────────────────────────────────────
@@ -247,6 +247,22 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
     const [totalToLoad, setTotalToLoad] = useState(0);
     const [showOrbits, setShowOrbits] = useState(true);
     const [showLabels, setShowLabels] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const canvasContainerRef = useRef(null);
+
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            canvasContainerRef.current?.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleChange);
+        return () => document.removeEventListener('fullscreenchange', handleChange);
+    }, []);
 
     // Step 1: Fetch ALL NEOs (limit=100) instead of using paginated prop
     useEffect(() => {
@@ -362,7 +378,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
 
             <CardContent className="space-y-3">
                 {/* 3D Canvas */}
-                <div className="aspect-[16/10] rounded-xl border border-white/10 overflow-hidden relative bg-black">
+                <div ref={canvasContainerRef} className={`rounded-xl border border-white/10 overflow-hidden relative bg-black ${isFullscreen ? 'w-screen h-screen' : 'aspect-[16/10]'}`}>
                     {loading && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                             <div className="text-center">
@@ -392,6 +408,15 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         </div>
                     ) : null}
 
+                    {/* Fullscreen toggle */}
+                    <button
+                        onClick={toggleFullscreen}
+                        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                        className="absolute top-2 right-2 z-20 p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors backdrop-blur-sm border border-white/10 cursor-pointer"
+                    >
+                        {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    </button>
+
                     {/* Legend */}
                     <div className="absolute bottom-2 left-2 flex gap-3 text-[10px] text-gray-500 pointer-events-none">
                         <span className="flex items-center gap-1">
@@ -412,7 +437,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => setShowOrbits(v => !v)}
-                        className={`border-white/10 text-xs ${showOrbits ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
+                        className={`border-white/10 cursor-pointer text-xs transition-all duration-200 hover:scale-105 ${showOrbits ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
                     >
                         {showOrbits ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                         Orbits
@@ -421,7 +446,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => setShowLabels(v => !v)}
-                        className={`border-white/10 text-xs ${showLabels ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
+                        className={`border-white/10 cursor-pointer text-xs transition-all duration-200 hover:scale-105 ${showLabels ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
                     >
                         {showLabels ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                         Labels

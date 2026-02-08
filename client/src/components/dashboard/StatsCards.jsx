@@ -75,7 +75,7 @@ const StatsCards = memo(({ neoData }) => {
                     <h2 className="text-lg font-semibold text-white">Mission Overview</h2>
                     <p className="text-sm text-gray-500">System Status: Nominal</p>
                 </div>
-                <div className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-gray-400 font-mono">
+                <div className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-gray-400 font-mono cursor-default hover:bg-green-500/10 hover:border-green-500/30 hover:text-green-400 transition-all duration-300">
                     SYNCED
                 </div>
             </div>
@@ -95,7 +95,7 @@ const BorderBeamCard = ({ stat, index }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.1 }}
-            className="group relative h-full"
+            className="group relative h-full cursor-pointer"
         >
             {/* Moving Border Gradient Container */}
             <div className="absolute -inset-[1px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden">
@@ -105,7 +105,7 @@ const BorderBeamCard = ({ stat, index }) => {
             <div className={`absolute inset-0 rounded-xl border border-white/10 ${stat.borderColor} transition-colors duration-300 pointer-events-none`} />
 
             {/* Main Card Content */}
-            <div className="relative h-full bg-black/60 rounded-xl p-5 flex flex-col justify-between overflow-hidden">
+            <div className="relative h-full bg-black/60 rounded-xl p-5 flex flex-col justify-between overflow-hidden transition-all duration-300 group-hover:shadow-lg group-hover:shadow-white/5 group-hover:-translate-y-0.5">
 
                 {/* Subtle Background Gradient for Depth */}
                 <div className={`absolute top-0 right-0 w-32 h-32 ${stat.bgHighlight} blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-20 transition-opacity duration-700`} />

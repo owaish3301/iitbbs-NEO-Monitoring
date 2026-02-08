@@ -258,9 +258,9 @@ const RiskAnalysisPanel = memo(({ neoData, riskSummary }) => {
                                 transition={{ delay: index * 0.1 }}
                                 className="group"
                             >
-                                <div className={`p-3 rounded-lg border transition-all duration-300 ${neo.isHazardous
-                                    ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
-                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                <div className={`p-3 rounded-lg border transition-all duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg ${neo.isHazardous
+                                    ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 hover:shadow-red-500/10'
+                                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:shadow-white/5'
                                     }`}>
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
