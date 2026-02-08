@@ -24,10 +24,10 @@ const mapSupabaseError = (err) => {
       return new AppError('Column does not exist', 500, 'DB_COLUMN_MISSING');
     case '42501': // insufficient_privilege
       return new AppError(
-        'Insufficient database privileges. Ensure the user_alert_states table has proper GRANTs for the service_role.',
+        'Insufficient database privileges. Ensure tables have proper GRANTs for the service_role.',
         500,
         'DB_INSUFFICIENT_PRIVILEGE',
-        { code, hint: 'Run: GRANT ALL ON public.user_alert_states TO service_role, authenticated;' },
+        { code, hint: 'Run: GRANT ALL ON public.user_alert_states TO service_role, authenticated; GRANT ALL ON public.user_watchlist TO service_role, authenticated;' },
       );
     case 'PGRST116': // Supabase: no rows returned
       return new AppError('Record not found', 404, 'DB_NOT_FOUND');

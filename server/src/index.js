@@ -8,6 +8,7 @@ import verifySupabase from './middleware/verifySupabase.js';
 import errorHandler from './middleware/errorHandler.js';
 import { NotFoundError } from './errors/appError.js';
 import neoRoutes from './routes/neoRoutes.js';
+import watchlistRoutes from './routes/watchlistRoutes.js';
 
 dotenv.config();
 
@@ -39,6 +40,9 @@ app.get('/api/me', verifySupabase, (req, res) => {
 
 // NEO data routes
 app.use('/api/neos', neoRoutes);
+
+// Watchlist routes (authenticated)
+app.use('/api/watchlist', watchlistRoutes);
 
 // 404 handler for unmatched routes
 app.use((req, res, next) => {
