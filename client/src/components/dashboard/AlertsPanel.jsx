@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bell,
@@ -17,16 +17,27 @@ import { deleteAlertById, markAlertAsRead, markAllAlertsAsRead } from '@/service
 const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts }) => {
     const [alerts, setLocalAlerts] = useState(initialAlerts);
     const [filter, setFilter] = useState('all');
+    const initializedRef = useRef(false);
 
+    // Only sync from parent on initial mount or when new alerts are added
     useEffect(() => {
-        setLocalAlerts(initialAlerts);
+        if (!initializedRef.current) {
+            setLocalAlerts(initialAlerts);
+            initializedRef.current = true;
+        } else if (initialAlerts.length > alerts.length) {
+            // New alerts were added from the server, merge them
+            const existingIds = new Set(alerts.map(a => a.id));
+            const newAlerts = initialAlerts.filter(a => !existingIds.has(a.id));
+            if (newAlerts.length > 0) {
+                setLocalAlerts(prev => [...newAlerts, ...prev]);
+            }
+        }
     }, [initialAlerts]);
 
     const unreadCount = alerts.filter(a => !a.read).length;
 
     const filteredAlerts = alerts.filter(alert => {
         if (filter === 'unread') return !alert.read;
-        if (filter === 'high') return alert.priority === 'high';
         return true;
     });
 
@@ -81,6 +92,8 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
         }
     };
 
+
+
     const getAlertIcon = (type) => {
         switch (type) {
             case 'close_approach':
@@ -127,7 +140,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                         variant="ghost"
                         onClick={markAllRead}
                         className="
-        text-gray-400 hover:text-white text-xs
+        text-gray-400 hover:text-black cursor-pointer text-xs
         whitespace-nowrap
         sm:self-center
       "
@@ -160,18 +173,6 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                                 }`}
                         >
                             Unread
-                        </Button>
-
-                        <Button
-                            size="sm"
-                            variant={filter === 'high' ? 'default' : 'ghost'}
-                            onClick={() => setFilter('high')}
-                            className={`h-7 px-3 ${filter === 'high'
-                                    ? 'bg-red-500/20 text-red-400'
-                                    : 'text-gray-400'
-                                }`}
-                        >
-                            High Priority
                         </Button>
                     </div>
                 </div>
@@ -222,21 +223,25 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                                         </div>
 
                                         <div className="flex items-center gap-1">
+                                            {/* Mark as read */}
                                             {!alert.read && (
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => markAsRead(alert.id)}
                                                     className="text-gray-400 hover:text-green-400 h-8 px-2"
+                                                    title="Mark as read"
                                                 >
                                                     <Check className="w-4 h-4" />
                                                 </Button>
                                             )}
+                                            {/* Delete */}
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => deleteAlert(alert.id)}
                                                 className="text-gray-400 hover:text-red-400 h-8 px-2"
+                                                title="Delete alert"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>

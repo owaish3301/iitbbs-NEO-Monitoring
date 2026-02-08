@@ -60,7 +60,7 @@ const DashboardLayout = () => {
       };
     }
     return { name: 'Space Explorer', email: 'explorer@skynetics.com', avatar: null };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, session?.user?.email, session?.user?.user_metadata?.full_name, session?.user?.user_metadata?.avatar_url]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -98,7 +98,7 @@ const DashboardLayout = () => {
   // Only run initial load once on mount
   useEffect(() => {
     loadData(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Track whether this is a page change vs initial load
@@ -113,7 +113,7 @@ const DashboardLayout = () => {
     if (!isFirstLoad) {
       loadData(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const handleSelectNeo = useCallback((neo) => {
@@ -125,11 +125,11 @@ const DashboardLayout = () => {
   }, []);
 
   const handleAddToWatchlist = useCallback((neo) => {
-    toggleWatchlist(neo).catch(() => {});
+    toggleWatchlist(neo).catch(() => { });
   }, [toggleWatchlist]);
 
   const handleRemoveFromWatchlist = useCallback((neoId) => {
-    removeFromWatchlist(neoId).catch(() => {});
+    removeFromWatchlist(neoId).catch(() => { });
   }, [removeFromWatchlist]);
 
   // Stable callback for Sidebar — avoids recreating on every render
@@ -237,14 +237,11 @@ const DashboardLayout = () => {
 
       case 'watchlist':
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Watchlist
-              onView={handleSelectNeo}
-              onViewAll3D={handleViewAllWatchlist3D}
-              neoData={neoData}
-            />
-            <RiskAnalysisPanel neoData={neoData} riskSummary={riskSummary} />
-          </div>
+          <Watchlist
+            onView={handleSelectNeo}
+            onViewAll3D={handleViewAllWatchlist3D}
+            neoData={neoData}
+          />
         );
 
       case 'alerts':

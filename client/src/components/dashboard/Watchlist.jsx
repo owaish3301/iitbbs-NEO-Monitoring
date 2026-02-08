@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Eye, Bell, BellOff, Trash2, AlertTriangle, Rocket, Globe } from 'lucide-react';
+import { Star, Eye, Bell, BellOff, Trash2, AlertTriangle, Rocket, Globe, GitCompare, X, Zap, Ruler, Navigation } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,26 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
     const { watchlistItems, removeFromWatchlist, loading, hasAlert, toggleAlert } = useWatchlist();
     const [lookedUpNeos, setLookedUpNeos] = useState({});
     const [lookupLoading, setLookupLoading] = useState(false);
+    const [compareIds, setCompareIds] = useState(new Set());
+    const [showComparison, setShowComparison] = useState(false);
+
+    // Toggle comparison selection
+    const toggleCompare = (neoId) => {
+        setCompareIds(prev => {
+            const next = new Set(prev);
+            if (next.has(neoId)) {
+                next.delete(neoId);
+            } else if (next.size < 3) {
+                next.add(neoId);
+            }
+            return next;
+        });
+    };
+
+    const clearComparison = () => {
+        setCompareIds(new Set());
+        setShowComparison(false);
+    };
 
     // Build a set of NEO IDs present in the current feed
     const feedNeoIds = useMemo(() => {
@@ -34,7 +54,6 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
 
         const fetchMissing = async () => {
             const results = {};
-            // Fetch in parallel batches of 5
             for (let i = 0; i < missingIds.length; i += 5) {
                 const batch = missingIds.slice(i, i + 5);
                 const settled = await Promise.allSettled(
@@ -79,7 +98,7 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
 
         fetchMissing();
         return () => { cancelled = true; };
-    }, [watchlistItems, feedNeoIds]); // intentionally omit lookedUpNeos to avoid loops
+    }, [watchlistItems, feedNeoIds]);
 
     // Enrich watchlist items with live NEO data OR looked-up data
     const enrichedWatchlist = useMemo(() => {
@@ -95,12 +114,10 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
             if (liveNeo) {
                 return { ...liveNeo, _watchlistDbId: item.id, _addedAt: item.added_at };
             }
-            // Use looked-up data if available
             const looked = lookedUpNeos[id];
             if (looked) {
                 return { ...looked, _watchlistDbId: item.id, _addedAt: item.added_at };
             }
-            // Fallback — still loading or lookup failed
             return {
                 id: item.neo_id,
                 name: item.neo_name,
@@ -114,10 +131,131 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
         });
     }, [watchlistItems, neoData, lookedUpNeos]);
 
+    // Get NEOs selected for comparison
+    const comparedNeos = useMemo(() => {
+        return enrichedWatchlist.filter(neo => compareIds.has(neo.id));
+    }, [enrichedWatchlist, compareIds]);
+
     const isEmpty = enrichedWatchlist.length === 0;
 
+    // Comparison Panel Component
+    const ComparisonPanel = () => {
+        if (comparedNeos.length < 2) return null;
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="mb-6 p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-cyan-500/20"
+            >
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white font-semibold flex items-center gap-2">
+                        <GitCompare className="w-4 h-4 text-cyan-400" />
+                        Comparison Mode
+                    </h3>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={clearComparison}
+                        className="text-gray-400 hover:text-white h-7 px-2"
+                    >
+                        <X className="w-4 h-4" />
+                    </Button>
+                </div>
+
+                {/* Comparison Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-white/10">
+                                <th className="text-left py-2 px-3 text-gray-400 font-medium">Property</th>
+                                {comparedNeos.map(neo => (
+                                    <th key={neo.id} className="text-center py-2 px-3 text-white font-medium min-w-[120px]">
+                                        {(neo.name || '').replace(/[()]/g, '').slice(0, 15)}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {/* Status */}
+                            <tr className="border-b border-white/5">
+                                <td className="py-2 px-3 text-gray-400 flex items-center gap-2">
+                                    <AlertTriangle className="w-3 h-3" /> Status
+                                </td>
+                                {comparedNeos.map(neo => (
+                                    <td key={neo.id} className="text-center py-2 px-3">
+                                        <Badge
+                                            variant="outline"
+                                            className={neo.is_potentially_hazardous
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-400 text-xs'
+                                                : 'bg-green-500/20 border-green-500/50 text-green-400 text-xs'
+                                            }
+                                        >
+                                            {neo.is_potentially_hazardous ? 'Hazardous' : 'Safe'}
+                                        </Badge>
+                                    </td>
+                                ))}
+                            </tr>
+                            {/* Diameter */}
+                            <tr className="border-b border-white/5">
+                                <td className="py-2 px-3 text-gray-400 flex items-center gap-2">
+                                    <Ruler className="w-3 h-3" /> Diameter
+                                </td>
+                                {comparedNeos.map(neo => (
+                                    <td key={neo.id} className="text-center py-2 px-3 text-white">
+                                        {neo.estimated_diameter?.max_m
+                                            ? `${neo.estimated_diameter.min_m.toFixed(0)}-${neo.estimated_diameter.max_m.toFixed(0)}m`
+                                            : '—'}
+                                    </td>
+                                ))}
+                            </tr>
+                            {/* Velocity */}
+                            <tr className="border-b border-white/5">
+                                <td className="py-2 px-3 text-gray-400 flex items-center gap-2">
+                                    <Zap className="w-3 h-3" /> Velocity
+                                </td>
+                                {comparedNeos.map(neo => {
+                                    const vel = neo.close_approach_data?.[0]?.relative_velocity?.km_per_sec;
+                                    return (
+                                        <td key={neo.id} className="text-center py-2 px-3 text-white">
+                                            {vel ? `${vel.toFixed(2)} km/s` : '—'}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                            {/* Distance */}
+                            <tr className="border-b border-white/5">
+                                <td className="py-2 px-3 text-gray-400 flex items-center gap-2">
+                                    <Navigation className="w-3 h-3" /> Distance
+                                </td>
+                                {comparedNeos.map(neo => {
+                                    const dist = neo.close_approach_data?.[0]?.miss_distance?.lunar;
+                                    return (
+                                        <td key={neo.id} className="text-center py-2 px-3 text-white">
+                                            {dist ? `${dist.toFixed(2)} LD` : '—'}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                            {/* Approach Date */}
+                            <tr>
+                                <td className="py-2 px-3 text-gray-400">Approach</td>
+                                {comparedNeos.map(neo => (
+                                    <td key={neo.id} className="text-center py-2 px-3 text-cyan-400 text-xs">
+                                        {neo.close_approach_data?.[0]?.close_approach_date || '—'}
+                                    </td>
+                                ))}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </motion.div>
+        );
+    };
+
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md h-full">
+        <Card className="bg-white/5 border-white/10 backdrop-blur-md">
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -125,6 +263,17 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                         Your Watchlist
                     </div>
                     <div className="flex items-center gap-2">
+                        {compareIds.size >= 2 && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setShowComparison(!showComparison)}
+                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7 px-2 text-xs"
+                            >
+                                <GitCompare className="w-3.5 h-3.5 mr-1" />
+                                {showComparison ? 'Hide' : 'Compare'} ({compareIds.size})
+                            </Button>
+                        )}
                         {!isEmpty && (
                             <Button
                                 size="sm"
@@ -146,6 +295,11 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
             </CardHeader>
 
             <CardContent>
+                {/* Comparison Panel */}
+                <AnimatePresence>
+                    {showComparison && <ComparisonPanel />}
+                </AnimatePresence>
+
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="w-8 h-8 border-3 border-yellow-400 border-t-transparent rounded-full animate-spin" />
@@ -165,11 +319,13 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                         </p>
                     </motion.div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <AnimatePresence mode="popLayout">
                             {enrichedWatchlist.map((neo, index) => {
                                 const approach = neo.close_approach_data?.[0];
                                 const isHazardous = neo.is_potentially_hazardous;
+                                const isSelected = compareIds.has(neo.id);
+                                const hasData = !neo._noLiveData || neo._fromLookup;
 
                                 return (
                                     <motion.div
@@ -178,89 +334,112 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9, x: -100 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className={`p-4 rounded-xl ${isHazardous
-                                                ? 'bg-red-500/10 border border-red-500/20'
-                                                : 'bg-white/5 border border-white/10'
-                                            }`}
+                                        transition={{ delay: index * 0.03 }}
+                                        className={`p-4 rounded-xl transition-all duration-200 ${isHazardous
+                                            ? 'bg-red-500/10 border border-red-500/20'
+                                            : 'bg-white/5 border border-white/10'
+                                            } ${isSelected ? 'ring-2 ring-cyan-400/50 bg-cyan-500/5' : ''}`}
                                     >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex items-center gap-2">
+                                        {/* Header */}
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
                                                 {isHazardous && (
-                                                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                                                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
                                                 )}
-                                                <div>
-                                                    <h4 className="text-white font-medium text-sm">
+                                                <div className="min-w-0">
+                                                    <h4 className="text-white font-medium text-sm truncate">
                                                         {(neo.name || '').replace(/[()]/g, '')}
                                                     </h4>
-                                                    <p className="text-gray-500 text-xs">
+                                                    <p className="text-gray-500 text-xs truncate">
                                                         {approach?.close_approach_date
                                                             || (neo._noLiveData && lookupLoading ? 'Loading...'
-                                                            : neo._noLiveData ? 'No upcoming close approach'
-                                                            : neo._fromLookup ? 'Next: ' + (approach?.close_approach_date || 'N/A')
-                                                            : 'Unknown date')}
+                                                                : neo._noLiveData ? 'No data'
+                                                                    : 'Unknown')}
                                                     </p>
-                                                    {neo._fromLookup && (
-                                                        <p className="text-gray-600 text-[10px] mt-0.5">via NASA lookup</p>
-                                                    )}
                                                 </div>
                                             </div>
-                                            {(!neo._noLiveData || neo._fromLookup) && (
+                                            {hasData && (
                                                 <Badge
                                                     variant="outline"
-                                                    className={isHazardous
-                                                        ? 'bg-red-500/20 border-red-500/50 text-red-400 text-xs'
-                                                        : 'bg-green-500/20 border-green-500/50 text-green-400 text-xs'
-                                                    }
+                                                    className={`flex-shrink-0 text-[10px] px-1.5 ${isHazardous
+                                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                                        : 'bg-green-500/20 border-green-500/50 text-green-400'
+                                                        }`}
                                                 >
-                                                    {isHazardous ? 'Hazardous' : 'Safe'}
+                                                    {isHazardous ? 'Hazard' : 'Safe'}
                                                 </Badge>
                                             )}
                                         </div>
 
-                                        {approach?.miss_distance?.lunar != null && (
-                                            <div className="flex items-center justify-between text-sm mb-3">
-                                                <span className="text-gray-400">Distance:</span>
-                                                <span className="text-white font-medium">
-                                                    {approach.miss_distance.lunar.toFixed(2)} LD
-                                                </span>
+                                        {/* Stats Row */}
+                                        {approach && (
+                                            <div className="flex items-center gap-3 text-xs mb-3 text-gray-400">
+                                                {approach.miss_distance?.lunar != null && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Navigation className="w-3 h-3" />
+                                                        {approach.miss_distance.lunar.toFixed(1)} LD
+                                                    </span>
+                                                )}
+                                                {approach.relative_velocity?.km_per_sec && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Zap className="w-3 h-3" />
+                                                        {approach.relative_velocity.km_per_sec.toFixed(1)} km/s
+                                                    </span>
+                                                )}
                                             </div>
                                         )}
 
-                                        <div className="flex gap-2">
-                                            {(!neo._noLiveData || neo._fromLookup) && (
+                                        {/* Action Buttons - Compact */}
+                                        <div className="flex items-center gap-1">
+                                            {/* Compare Toggle */}
+                                            {hasData && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => toggleCompare(neo.id)}
+                                                    className={`h-7 px-2 ${isSelected
+                                                        ? 'text-cyan-400 bg-cyan-500/20 hover:bg-cyan-500/30'
+                                                        : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
+                                                        }`}
+                                                    title={isSelected ? 'Remove from comparison' : 'Add to comparison'}
+                                                >
+                                                    <GitCompare className="w-3 h-3" />
+                                                </Button>
+                                            )}
+                                            {/* View */}
+                                            {hasData && (
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => onView?.(neo)}
-                                                    className="flex-1 text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 h-8"
+                                                    className="h-7 px-2 text-gray-400 hover:text-white hover:bg-white/10"
+                                                    title="View details"
                                                 >
-                                                    <Eye className="w-3 h-3 mr-1" />
-                                                    View
+                                                    <Eye className="w-3 h-3" />
                                                 </Button>
                                             )}
-                                            {(!neo._noLiveData || neo._fromLookup) && (
+                                            {/* Alert */}
+                                            {hasData && (
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
-                                                    onClick={() => toggleAlert(neo).catch(() => {})}
-                                                    className={`flex-1 h-8 ${
-                                                        hasAlert(neo.id)
-                                                            ? 'text-purple-400 bg-purple-500/15 hover:text-purple-300 hover:bg-purple-500/20'
-                                                            : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
-                                                    }`}
+                                                    onClick={() => toggleAlert(neo).catch(() => { })}
+                                                    className={`h-7 px-2 ${hasAlert(neo.id)
+                                                        ? 'text-purple-400 bg-purple-500/20 hover:bg-purple-500/30'
+                                                        : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
+                                                        }`}
+                                                    title={hasAlert(neo.id) ? 'Disable alert' : 'Enable alert'}
                                                 >
-                                                    {hasAlert(neo.id)
-                                                        ? <><BellOff className="w-3 h-3 mr-1" /> Alerted</>
-                                                        : <><Bell className="w-3 h-3 mr-1" /> Alert</>
-                                                    }
+                                                    {hasAlert(neo.id) ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
                                                 </Button>
                                             )}
+                                            {/* Delete */}
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                onClick={() => removeFromWatchlist(neo.id).catch(() => {})}
-                                                className="text-gray-400 hover:text-red-400 hover:bg-red-500/10 h-8 px-2"
+                                                onClick={() => removeFromWatchlist(neo.id).catch(() => { })}
+                                                className="h-7 px-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 ml-auto"
+                                                title="Remove from watchlist"
                                             >
                                                 <Trash2 className="w-3 h-3" />
                                             </Button>
